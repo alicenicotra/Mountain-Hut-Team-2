@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 import { register } from '../api/auth-api.ts'
 import { ApiError } from '../../shared/api/client.ts'
 import { useAuth } from '../hooks/useAuth.ts'
@@ -14,6 +14,8 @@ const MIN_PASSWORD_LENGTH = 8 // TODO: align with registerSchema in auth.schema.
 export default function RegisterPage() {
   const { user, login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const from = (location.state as { from?: string } | null)?.from
 
   const [name, setName] = useState('')
   const [surname, setSurname] = useState('')
@@ -53,7 +55,7 @@ export default function RegisterPage() {
       })
       // registering doesn't start a session, so log in right away
       await login(email.trim(), password)
-      navigate('/booking', { replace: true })
+      navigate(from ?? '/booking', { replace: true })
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         setError('An error occurred while trying to register your account, try with a different email')

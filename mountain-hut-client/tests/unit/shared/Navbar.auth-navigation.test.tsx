@@ -55,22 +55,28 @@ describe("Navbar", () => {
     expect(screen.queryByRole("link", { name: /hut mail/i })).not.toBeInTheDocument();
   });
 
-  it("shows booking links and Logout to hikers, but not Manage slots, Hut Mail, Login or Register", () => {
+  it("shows booking links and user menu to hikers, but not Manage slots, Hut Mail, Login or Register", () => {
     renderNavbarAs(fakeUser("HIKER"));
     expect(screen.getByText("Book a table")).toBeInTheDocument();
     expect(screen.getByText("My bookings")).toBeInTheDocument();
-    expect(screen.getByText("Logout")).toBeInTheDocument();
     expect(screen.queryByText("Manage slots")).not.toBeInTheDocument();
     expect(screen.queryByText("Login")).not.toBeInTheDocument();
     expect(screen.queryByText("Register")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /hut mail/i })).not.toBeInTheDocument();
+
+    // User menu contains user name and reveals Logout when opened
+    const userButton = screen.getByRole("button", { name: /user menu/i });
+    expect(userButton).toBeInTheDocument();
+    expect(screen.queryByText("Logout")).not.toBeInTheDocument();
+
+    fireEvent.click(userButton);
+    expect(screen.getByText("Logout")).toBeInTheDocument();
   });
 
-  it("shows Manage slots and Hut Mail before the user name and Logout for employees", () => {
+  it("shows Manage slots and Hut Mail before the user menu for employees", () => {
     renderNavbarAs(fakeUser("EMPLOYEE"));
     const manageSlots = screen.getByText("Manage slots");
     expect(manageSlots).toBeInTheDocument();
-    expect(screen.getByText("Logout")).toBeInTheDocument();
     expect(screen.queryByText("Book a table")).not.toBeInTheDocument();
     expect(screen.queryByText("My bookings")).not.toBeInTheDocument();
     expect(screen.queryByText("Login")).not.toBeInTheDocument();
@@ -83,6 +89,35 @@ describe("Navbar", () => {
     expect(mailLink).toHaveAttribute("rel", "noopener noreferrer");
     expect(manageSlots.compareDocumentPosition(mailLink) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(mailLink.compareDocumentPosition(userName) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    const userButton = screen.getByRole("button", { name: /user menu/i });
+    fireEvent.click(userButton);
+    expect(screen.getByText("Logout")).toBeInTheDocument();
+  });
+
+  it("toggles user dropdown menu open and closed, displaying profile info", () => {
+    renderNavbarAs(fakeUser("HIKER"));
+    const userButton = screen.getByRole("button", { name: /user menu/i });
+    expect(userButton).toHaveAttribute("aria-expanded", "false");
+
+    // Open dropdown
+    fireEvent.click(userButton);
+    expect(userButton).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Test User")).toBeInTheDocument();
+    expect(screen.getByText("test@example.com")).toBeInTheDocument();
+    expect(screen.getByText("hiker")).toBeInTheDocument();
+    expect(screen.getByText("Logout")).toBeInTheDocument();
+
+    // Close on second click
+    fireEvent.click(userButton);
+    expect(userButton).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Logout")).not.toBeInTheDocument();
+
+    // Close on Escape key
+    fireEvent.click(userButton);
+    expect(userButton).toHaveAttribute("aria-expanded", "true");
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(userButton).toHaveAttribute("aria-expanded", "false");
   });
 
   it("highlights Home when on home route and inactive when on another page", () => {
