@@ -86,7 +86,9 @@ const isMain =
 if (isMain) {
   const fastify = buildApp();
 
-  fastify.listen({ port: env.PORT }, function (err, _address) {
+  fastify.listen(
+    { port: env.PORT, host: "0.0.0.0" },
+    function (err, _address) {
     if (err) {
       fastify.log.error(err);
       process.exit(1);
