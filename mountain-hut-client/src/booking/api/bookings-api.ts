@@ -1,6 +1,7 @@
 import { apiFetch } from "../../shared/api/client.ts";
 import type {
   BookingResult,
+  CancelBookingResult,
   ChangeBookingRequest,
   ChangeBookingResult,
   CreateBookingRequest,
@@ -42,5 +43,12 @@ export function changeBooking(bookingId: number, changes: ChangeBookingRequest) 
   return apiFetch<ChangeBookingResult>(`/bookings/${bookingId}`, {
     method: "PATCH",
     body: JSON.stringify(changes),
+  });
+}
+
+// DELETE /api/v1/bookings/:id: cancel a booking
+export function cancelBooking(bookingId: number) {
+  return apiFetch<CancelBookingResult>(`/bookings/${bookingId}`, {
+    method: "DELETE",
   });
 }
