@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router";
 import { useAuth } from "../../auth/hooks/useAuth.ts";
 
@@ -31,6 +31,8 @@ const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -38,8 +40,30 @@ export default function Navbar() {
   const isStaff = role !== null && STAFF.includes(role);
   const visibleItems = navItems.filter((item) => item.show(role));
 
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsUserMenuOpen(false);
+      }
+    }
+    if (isUserMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isUserMenuOpen]);
+
   async function handleLogout() {
     setIsOpen(false);
+    setIsUserMenuOpen(false);
     await logout();
     navigate("/");
   }
@@ -73,14 +97,68 @@ export default function Navbar() {
                   <span>Hut Mail</span>
                 </a>
               )}
-              <span className="text-stone-600">{user.name}</span>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="text-stone-700 hover:text-green-700 transition-colors cursor-pointer"
-              >
-                Logout
-              </button>
+              {/* User dropdown menu */}
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsUserMenuOpen((prev) => !prev)}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-stone-200 bg-white/70 hover:bg-white text-stone-700 hover:text-green-800 transition-all cursor-pointer shadow-xs"
+                  aria-expanded={isUserMenuOpen}
+                  aria-haspopup="true"
+                  aria-label="User menu"
+                >
+                  <span className="w-6 h-6 rounded-full bg-green-700 text-white text-xs font-semibold flex items-center justify-center">
+                    {user.name.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="font-medium text-sm">{user.name}</span>
+                  <svg
+                    className={`w-4 h-4 text-stone-500 transition-transform ${isUserMenuOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth="2"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                  </svg>
+                </button>
+
+                {isUserMenuOpen && (
+                  <div
+                    role="menu"
+                    aria-orientation="vertical"
+                    className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-stone-200 py-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150"
+                  >
+                    <div className="px-4 py-2 border-b border-stone-100">
+                      <p className="text-sm font-semibold text-stone-900 truncate">
+                        {user.name} {user.surname}
+                      </p>
+                      <p className="text-xs text-stone-500 truncate">{user.email}</p>
+                      <span className="inline-block mt-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200 capitalize">
+                        {user.type.toLowerCase()}
+                      </span>
+                    </div>
+
+                    <div className="py-1">
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"
+                          />
+                        </svg>
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>
