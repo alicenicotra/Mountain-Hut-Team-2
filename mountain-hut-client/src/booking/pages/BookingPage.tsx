@@ -8,6 +8,11 @@ import { ApiError } from "../../shared/api/client.ts";
 import { useAuth } from "../../auth/hooks/useAuth.ts";
 import AuthShell from "../../shared/components/AuthShell.tsx";
 import RequirementsFields from "../components/RequirementsFields.tsx";
+import {
+  clearBookingDraft,
+  loadBookingDraft,
+  saveBookingDraft,
+} from "../storage/booking-draft.ts";
 import type { SlotAvailability } from "../types/availability.ts";
 import type { BookingResult } from "../types/booking.ts";
 
@@ -82,19 +87,62 @@ function SectionLabel({ children, htmlFor }: { children: string; htmlFor?: strin
 export default function BookingPage() {
   const { user, loading: authLoading } = useAuth();
 
-  const [date, setDate] = useState("");
-  const [partySize, setPartySize] = useState(2);
-  const [slotId, setSlotId] = useState("");
+  const [date, setDate] = useState<string>(() => {
+    const draft = loadBookingDraft();
+    if (draft?.date) {
+      if (draft.date >= today()) {
+        return draft.date;
+      }
+      clearBookingDraft();
+    }
+    return "";
+  });
+  const [partySize, setPartySize] = useState<number>(() => {
+    const draft = loadBookingDraft();
+    if (draft?.partySize && draft.partySize >= 1 && draft.partySize <= MAX_PARTY_SIZE) {
+      return draft.partySize;
+    }
+    return 2;
+  });
+  const [slotId, setSlotId] = useState<string>(() => {
+    const draft = loadBookingDraft();
+    if (draft?.date && draft.date >= today() && draft.slotId) {
+      return draft.slotId;
+    }
+    return "";
+  });
   const [formError, setFormError] = useState<string | null>(null);
 
   const [loaded, setLoaded] = useState<LoadedAvailability | null>(null);
 
   // MH-05: optional allergies, intolerances and notes
-  const [hasRequirements, setHasRequirements] = useState(false);
-  const [description, setDescription] = useState("");
+  const [hasRequirements, setHasRequirements] = useState<boolean>(() => {
+    const draft = loadBookingDraft();
+    return Boolean(draft?.hasRequirements);
+  });
+  const [description, setDescription] = useState<string>(() => {
+    const draft = loadBookingDraft();
+    return draft?.description ?? "";
+  });
 
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<BookingResult | null>(null);
+
+  // MH-96: persist search/selection details in localStorage so users retain their research across login/register
+  useEffect(() => {
+    if (result) return;
+    if (date) {
+      saveBookingDraft({
+        date,
+        partySize,
+        slotId,
+        hasRequirements,
+        description,
+      });
+    } else {
+      clearBookingDraft();
+    }
+  }, [date, partySize, slotId, hasRequirements, description, result]);
 
   const validParty = partySize >= 1 && partySize <= MAX_PARTY_SIZE;
   const key = date && validParty ? `${date}|${partySize}` : null;
@@ -139,7 +187,11 @@ export default function BookingPage() {
   }
 
   function startNewBooking() {
+    clearBookingDraft();
     setResult(null);
+    setDate("");
+    setPartySize(2);
+    setSlotId("");
     setHasRequirements(false);
     setDescription("");
   }
@@ -154,11 +206,11 @@ export default function BookingPage() {
     setFormError(null);
     setSubmitting(true);
     try {
-      setResult(
-        await createBooking(Number(slotId), partySize, {
-          description: hasRequirements ? description : undefined,
-        }),
-      );
+      const res = await createBooking(Number(slotId), partySize, {
+        description: hasRequirements ? description : undefined,
+      });
+      clearBookingDraft();
+      setResult(res);
     } catch (err) {
       setFormError(bookingErrorMessage(err));
     } finally {
@@ -410,7 +462,11 @@ export default function BookingPage() {
                   Log in
                 </Link>{" "}
                 or{" "}
-                <Link to="/register" className="font-semibold text-green-700 underline">
+                <Link
+                  to="/register"
+                  state={{ from: "/booking" }}
+                  className="font-semibold text-green-700 underline"
+                >
                   create an account
                 </Link>{" "}
                 to book a table.
