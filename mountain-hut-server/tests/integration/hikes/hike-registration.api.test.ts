@@ -32,7 +32,9 @@ function payload() {
   return {
     departureAt: departure.toISOString(),
     expectedReturnAt: expectedReturn.toISOString(),
+    destination: "Monviso summit",
     routeDescription: "Via the north valley and the marked summit path",
+    intermediatePoints: ["Lago Chiaretto", "Viso Mozzo"],
     emergencyContactPhone: "+393331234567",
   };
 }
@@ -86,7 +88,9 @@ describe("MH-139 hike API", () => {
     expect(res.statusCode).toBe(201);
     expect(res.json()).toMatchObject({
       id: expect.any(Number), userId: 1,
+      destination: "Monviso summit",
       routeDescription: payload().routeDescription,
+      intermediatePoints: ["Lago Chiaretto", "Viso Mozzo"],
       emergencyContactPhone: "+393331234567",
     });
     expect((await testDb.select().from(hikesTable))).toHaveLength(1);
@@ -99,6 +103,9 @@ describe("MH-139 hike API", () => {
     expect(mine.statusCode).toBe(200);
     expect(mine.json()).toHaveLength(1);
     expect(mine.json()[0].userId).toBe(1);
+    expect(mine.json()[0]).toMatchObject({
+      destination: "Monviso summit", intermediatePoints: ["Lago Chiaretto", "Viso Mozzo"],
+    });
     const others = await request("GET", "/api/v1/hikes/mine", otherCookie);
     expect(others.json()).toHaveLength(1);
     expect(others.json()[0].userId).toBe(2);
@@ -110,11 +117,22 @@ describe("MH-139 hike API", () => {
       const res = await request("GET", "/api/v1/hikes", cookie);
       expect(res.statusCode).toBe(200);
       expect(res.json()).toHaveLength(1);
+      expect(res.json()[0]).toMatchObject({
+        destination: "Monviso summit", intermediatePoints: ["Lago Chiaretto", "Viso Mozzo"],
+      });
       expect(res.json()[0].hiker).toEqual({
         name: "First", surname: "Hiker", phoneNumber: "+39000001",
       });
       expect(JSON.stringify(res.json())).not.toContain("passwordHash");
     }
+  });
+
+  it("stores an empty list when intermediate points are omitted", async () => {
+    const { intermediatePoints: _unused, ...withoutPoints } = payload();
+    const res = await request("POST", "/api/v1/hikes", hikerCookie, withoutPoints);
+    expect(res.statusCode).toBe(201);
+    expect(res.json().intermediatePoints).toEqual([]);
+    expect((await testDb.select().from(hikesTable))[0].intermediatePoints).toEqual([]);
   });
 
   it("rejects guests and staff registering hikes", async () => {
@@ -137,6 +155,10 @@ describe("MH-139 hike API", () => {
       { ...base, departureAt: new Date(Date.now() - 60_000).toISOString() },
       { ...base, expectedReturnAt: base.departureAt },
       { ...base, routeDescription: "" },
+      { ...base, destination: "" },
+      { departureAt: base.departureAt, expectedReturnAt: base.expectedReturnAt, routeDescription: base.routeDescription },
+      { ...base, intermediatePoints: [""] },
+      { ...base, intermediatePoints: Array(31).fill("point") },
       { ...base, userId: 2 },
       { ...base, departureAt: "2026-12-15 09:00" },
     ];

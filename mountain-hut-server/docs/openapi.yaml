@@ -789,7 +789,7 @@ components:
     RegisterHikeRequest:
       type: object
       additionalProperties: false
-      required: [departureAt, expectedReturnAt, routeDescription]
+      required: [departureAt, expectedReturnAt, destination, routeDescription]
       properties:
         departureAt:
           type: string
@@ -801,10 +801,24 @@ components:
           format: date-time
           description: ISO 8601 with Z or UTC offset; after departure
           example: "2026-12-20T17:00:00+01:00"
+        destination:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: "Monviso summit"
         routeDescription:
           type: string
           minLength: 1
           maxLength: 2000
+        intermediatePoints:
+          type: array
+          maxItems: 30
+          description: Optional names of intermediate passage points, in route order
+          items:
+            type: string
+            minLength: 1
+            maxLength: 200
+          example: ["Lago Chiaretto", "Viso Mozzo"]
         emergencyContactPhone:
           type: string
           minLength: 3
@@ -812,7 +826,7 @@ components:
 
     Hike:
       type: object
-      required: [id, userId, departureAt, expectedReturnAt, routeDescription, emergencyContactPhone, createdAt]
+      required: [id, userId, departureAt, expectedReturnAt, destination, routeDescription, intermediatePoints, emergencyContactPhone, createdAt]
       properties:
         id:
           type: integer
@@ -824,8 +838,14 @@ components:
         expectedReturnAt:
           type: string
           format: date-time
+        destination:
+          type: string
         routeDescription:
           type: string
+        intermediatePoints:
+          type: array
+          items:
+            type: string
         emergencyContactPhone:
           type: string
           nullable: true

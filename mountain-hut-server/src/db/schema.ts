@@ -94,7 +94,12 @@ export const hikesTable = sqliteTable("hikes", {
     .references(() => usersTable.id),
   departureAt: text("departure_at").notNull(),
   expectedReturnAt: text("expected_return_at").notNull(),
+  destination: text("destination").notNull(),
   routeDescription: text("route_description").notNull(),
+  intermediatePoints: text("intermediate_points", { mode: "json" })
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'`),
   emergencyContactPhone: text("emergency_contact_phone"),
   createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
 });
