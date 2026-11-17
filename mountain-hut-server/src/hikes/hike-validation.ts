@@ -7,7 +7,9 @@ import { z } from "zod";
 export const registerHikeSchema = z.object({
   departureAt: z.iso.datetime({ offset: true }),
   expectedReturnAt: z.iso.datetime({ offset: true }),
+  destination: z.string().trim().min(1).max(200),
   routeDescription: z.string().trim().min(1).max(2000),
+  intermediatePoints: z.array(z.string().trim().min(1).max(200)).max(30).optional(),
   emergencyContactPhone: z.string().trim().min(3).max(40).optional(),
 }).strict();
 

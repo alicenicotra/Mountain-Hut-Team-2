@@ -9,7 +9,9 @@ export async function registerHike(userId: number, input: RegisterHikeInput) {
     userId,
     departureAt: new Date(input.departureAt).toISOString(),
     expectedReturnAt: new Date(input.expectedReturnAt).toISOString(),
+    destination: input.destination,
     routeDescription: input.routeDescription,
+    intermediatePoints: input.intermediatePoints ?? [],
     emergencyContactPhone: input.emergencyContactPhone ?? null,
   }).returning();
   return hike;
@@ -28,7 +30,9 @@ export async function listRegisteredHikes() {
     userId: hikesTable.userId,
     departureAt: hikesTable.departureAt,
     expectedReturnAt: hikesTable.expectedReturnAt,
+    destination: hikesTable.destination,
     routeDescription: hikesTable.routeDescription,
+    intermediatePoints: hikesTable.intermediatePoints,
     emergencyContactPhone: hikesTable.emergencyContactPhone,
     createdAt: hikesTable.createdAt,
     hikerName: usersTable.name,

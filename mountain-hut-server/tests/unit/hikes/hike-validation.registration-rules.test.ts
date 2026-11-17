@@ -5,7 +5,9 @@ const now = new Date("2026-12-01T10:00:00.000Z");
 const valid = {
   departureAt: "2026-12-03T08:00:00+01:00",
   expectedReturnAt: "2026-12-03T17:00:00+01:00",
+  destination: "Monviso summit",
   routeDescription: "Rifugio to summit via the marked trail",
+  intermediatePoints: ["Viso Mozzo", "Lago Chiaretto"],
 };
 
 describe("MH-139 hike registration rules", () => {
@@ -13,6 +15,11 @@ describe("MH-139 hike registration rules", () => {
     const result = registerHikeSchema.safeParse(valid);
     expect(result.success).toBe(true);
     expect(validateHikeChronology(valid, now)).toBeNull();
+  });
+
+  it("accepts a hike with no intermediate passage points", () => {
+    const { intermediatePoints: _points, ...withoutPoints } = valid;
+    expect(registerHikeSchema.safeParse(withoutPoints).success).toBe(true);
   });
 
   it("accepts Z timestamps and an optional emergency contact", () => {
@@ -38,6 +45,12 @@ describe("MH-139 hike registration rules", () => {
   });
 
   it.each([
+    [{ ...valid, destination: " " }, "empty destination"],
+    [{ departureAt: valid.departureAt, expectedReturnAt: valid.expectedReturnAt, routeDescription: valid.routeDescription }, "missing destination"],
+    [{ ...valid, destination: "x".repeat(201) }, "too-long destination"],
+    [{ ...valid, intermediatePoints: [""] }, "empty passage point"],
+    [{ ...valid, intermediatePoints: ["x".repeat(201)] }, "too-long passage point"],
+    [{ ...valid, intermediatePoints: Array(31).fill("point") }, "too many passage points"],
     [{ ...valid, routeDescription: " " }, "empty route"],
     [{ ...valid, routeDescription: "x".repeat(2001) }, "too-long route"],
     [{ ...valid, departureAt: "2026-12-03 08:00" }, "no explicit timezone"],
