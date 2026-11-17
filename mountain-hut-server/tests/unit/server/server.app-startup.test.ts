@@ -77,7 +77,7 @@ describe("server app startup", () => {
       port: 3000,
       host: "0.0.0.0",
     });
-    expect(mocks.server.register).toHaveBeenCalledTimes(11);
+    expect(mocks.server.register).toHaveBeenCalledTimes(12);
     expect(mocks.server.get).toHaveBeenCalledWith("/", expect.any(Function));
 
     const callback = mocks.server.listen.mock.calls[0][1] as (

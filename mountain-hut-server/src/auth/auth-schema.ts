@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 //
-// REGISTRATION SCHEMAS
+// REGISTRATION
 //
 const standardRegisterSchema = z.object({
   type: z.enum(["HIKER", "EMPLOYEE", "MANAGER"]).default("HIKER"),
@@ -47,7 +47,7 @@ export const registerSchema = z.discriminatedUnion("type", [
 export type RegisterInput = z.infer<typeof registerSchema>;
 
 //
-// LOGIN SCHEMAS
+// LOGIN
 //
 export const loginSchema = z.object({
   email: z.email("Invalid email format"),
@@ -55,3 +55,20 @@ export const loginSchema = z.object({
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
+
+//
+// CHANGE PASSWORD
+//
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(8, "New password is required"),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.email("Invalid email format"),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Reset token is required"),
+  newPassword: z.string().min(8, "Password must be at least 8 characters long"),
+});

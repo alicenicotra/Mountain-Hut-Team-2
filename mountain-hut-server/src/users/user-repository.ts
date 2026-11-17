@@ -2,7 +2,7 @@ import { db } from "../db/database.ts";
 import { eq, and, SQL, type InferSelectModel, sql } from "drizzle-orm";
 import { usersTable, type UserType } from "../db/schema.ts";
 
-export interface CreateUserData {
+export interface UserData {
   email: string | null;
   passwordHash: string | null;
   name: string;
@@ -65,8 +65,18 @@ export class UserRepository {
     return user ?? null;
   }
 
-  static async saveUser(data: CreateUserData): Promise<User> {
+  static async saveUser(data: UserData): Promise<User> {
     const [newUser] = await db.insert(usersTable).values(data).returning();
     return newUser;
+  }
+
+  static async updateUser(userId: number, newData: UserData): Promise<boolean> {
+    const [updated] = await db
+      .update(usersTable)
+      .set(newData)
+      .where(eq(usersTable.id, userId))
+      .returning({ id: usersTable.id });
+
+    return Boolean(updated);
   }
 }

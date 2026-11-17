@@ -20,12 +20,24 @@ const envSchema = z.object({
 
   SMTP_HOST: z.string().default("localhost"),
   SMTP_PORT: z.coerce.number().int().positive().default(1025),
-  SMTP_SECURE: z.enum(["true", "false"]).default("false").transform((v) => v === "true"),
-  SMTP_USER: z.string().optional().transform((v) => v || undefined),
-  SMTP_PASS: z.string().optional().transform((v) => v || undefined),
+  SMTP_SECURE: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
+  SMTP_USER: z
+    .string()
+    .optional()
+    .transform((v) => v || undefined),
+  SMTP_PASS: z
+    .string()
+    .optional()
+    .transform((v) => v || undefined),
   MAIL_FROM_NAME: z.string().default("Mountain Hut"),
   MAIL_FROM_ADDRESS: z.email().default("booking@mountain-hut.test"),
-  MAIL_REPLY_TO: z.string().optional().transform((v) => v || undefined),
+  MAIL_REPLY_TO: z
+    .string()
+    .optional()
+    .transform((v) => v || undefined),
 });
 
 const _env = envSchema.safeParse(process.env);
