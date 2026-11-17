@@ -10,10 +10,10 @@ export const getUserQuerySchema = z.object({
 
 export const userResponseSchema = z.object({
   id: z.number(),
-  email: z.string(),
+  email: z.string().nullable(),
   name: z.string(),
-  surname: z.string().default(""),
-  phoneNumber: z.string().nullable().optional(),
+  surname: z.string().nullable(),
+  phoneNumber: z.string().nullable(),
   type: z.enum(USER_TYPES),
 });
 

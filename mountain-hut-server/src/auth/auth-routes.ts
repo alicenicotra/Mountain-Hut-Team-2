@@ -1,7 +1,8 @@
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
-import { StatusCodes } from "http-status-codes";
 import argon2 from "argon2";
+import { StatusCodes } from "http-status-codes";
+import { randomInt } from "node:crypto";
 import { z } from "zod";
 
 import { UserRepository } from "../users/user-repository.ts";
@@ -23,28 +24,37 @@ export const authRoutes: FastifyPluginAsync = async (server) => {
       },
     },
     async (request, reply) => {
-      const existingUser = await UserRepository.getUserByEmail(
-        request.body.email,
-      );
-      if (existingUser) {
-        return reply
-          .code(StatusCodes.CONFLICT)
-          .send({ message: "An account with this email already exists" });
+      const body = request.body;
+
+      if (body.email) {
+        const existingUser = await UserRepository.getUserByEmail(body.email);
+        if (existingUser) {
+          return reply
+            .code(StatusCodes.CONFLICT)
+            .send({ message: "An account with this email already exists" });
+        }
       }
 
-      const passwordHash = await argon2.hash(request.body.password);
-      const user = await UserRepository.createUser({
-        email: request.body.email,
+      let passwordHash: string | null = null;
+      if (body.type === "TEMPORARY") {
+        const rawPassword = `${body.name}${body.surname ?? ""}${randomInt(100, 1000)}`;
+        passwordHash = await argon2.hash(rawPassword);
+      } else if (body.type !== "THROWAWAY") {
+        passwordHash = await argon2.hash(body.password);
+      }
+
+      const newUser = await UserRepository.saveUser({
+        email: body.email,
         passwordHash,
-        name: request.body.name,
-        surname: request.body.surname,
-        phoneNumber: request.body.phoneNumber,
-        type: "HIKER",
+        name: body.name,
+        surname: body.surname,
+        phoneNumber: body.phoneNumber,
+        type: body.type,
       });
 
       return reply
         .code(StatusCodes.CREATED)
-        .send(userResponseSchema.parse(user));
+        .send(userResponseSchema.parse(newUser));
     },
   );
 
@@ -61,7 +71,7 @@ export const authRoutes: FastifyPluginAsync = async (server) => {
     },
     async (request, reply) => {
       const user = await UserRepository.getUserByEmail(request.body.email);
-      if (!user) {
+      if (!user || !user.passwordHash) {
         return reply
           .code(StatusCodes.UNAUTHORIZED)
           .send({ message: "Invalid email or password" });

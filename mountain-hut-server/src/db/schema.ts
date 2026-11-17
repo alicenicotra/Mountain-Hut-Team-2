@@ -5,22 +5,50 @@ import {
   text,
   unique,
   primaryKey,
+  check,
 } from "drizzle-orm/sqlite-core";
 
-export const USER_TYPES = ["HIKER", "EMPLOYEE", "MANAGER"] as const;
+export const USER_TYPES = [
+  "HIKER",
+  "EMPLOYEE",
+  "MANAGER",
+
+  // hiker accounts that were created by an employee.
+  // they get promoted to regular hikers once the user changes the automatically generated password.
+  "TEMPORARY",
+
+  // accounts created by an employee by only inserting the hiker's name and (optional) phone number.
+  "THROWAWAY",
+] as const;
 export type UserType = (typeof USER_TYPES)[number];
 
 export const RESERVATION_STATUS = ["PLACED", "FULFILLED", "CANCELED"] as const;
 
-export const usersTable = sqliteTable("users", {
-  id: int().primaryKey({ autoIncrement: true }),
-  email: text().notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
-  name: text().notNull(),
-  surname: text().notNull(),
-  phoneNumber: text("phone_number"),
-  type: text().notNull().$type<UserType>().default("HIKER"),
-});
+export const usersTable = sqliteTable(
+  "users",
+  {
+    id: int().primaryKey({ autoIncrement: true }),
+    email: text().unique(),
+    passwordHash: text("password_hash"),
+    name: text().notNull(),
+    surname: text(),
+    phoneNumber: text("phone_number"),
+    type: text().notNull().$type<UserType>().default("HIKER"),
+  },
+  (t) => [
+    check(
+      "user_fields_by_type_check",
+      sql`
+        ${t.type} = 'THROWAWAY'
+        OR (
+          ${t.email} IS NOT NULL AND
+          ${t.passwordHash} IS NOT NULL AND
+          ${t.surname} IS NOT NULL
+        )
+      `,
+    ),
+  ],
+);
 
 // One row per slot on a given day: date is "YYYY-MM-DD", from/to are "HH:MM"
 export const timeSlotTable = sqliteTable(
