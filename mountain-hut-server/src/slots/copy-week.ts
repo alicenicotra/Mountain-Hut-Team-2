@@ -1,7 +1,7 @@
-import { and, gte, inArray, lte } from "drizzle-orm";
+import { and, gte, inArray, lte, ne } from "drizzle-orm";
 import { db } from "../db/database.ts";
-import { tableAvailabilityTable, timeSlotTable } from "../db/schema.ts";
-import { slotsOverlap, todayString } from "./slot-rules.ts";
+import { reservationsTable, tableAvailabilityTable, timeSlotTable } from "../db/schema.ts";
+import { todayString } from "./slot-rules.ts";
 import { SlotError } from "./slots.ts";
 import { addUtcDays, isMonday, planWeekCopy } from "./week-copy-plan.ts";
 
@@ -56,15 +56,22 @@ export async function copyWeeklySchedule(input: CopyWeekInput) {
           lte(timeSlotTable.date, targetEnd),
         ));
 
-      for (const slot of plan) {
-        const conflict = destinationSlots.find(
-          (existing) => existing.date === slot.date && slotsOverlap(existing, slot),
-        );
-        if (conflict) {
-          throw new SlotError(
-            409,
-            `Destination slot overlaps with existing slot ${conflict.date} ${conflict.from}-${conflict.to}`,
-          );
+      // MH-09 clarification: replacing a destination week is allowed only when
+      // none of its existing slots has an active (non-canceled) reservation.
+      // Check ALL requested weeks before replacing any slot; the entire operation
+      // remains atomic, including deletion of previously canceled reservations.
+      const destinationIds = destinationSlots.map((slot) => slot.id);
+      if (destinationIds.length > 0) {
+        const activeBookings = await tx
+          .select({ id: reservationsTable.id })
+          .from(reservationsTable)
+          .where(and(
+            inArray(reservationsTable.slotId, destinationIds),
+            ne(reservationsTable.status, "CANCELED"),
+          ))
+          .limit(1);
+        if (activeBookings.length > 0) {
+          throw new SlotError(409, "Destination week contains bookings; nothing was copied");
         }
       }
 
@@ -81,6 +88,17 @@ export async function copyWeeklySchedule(input: CopyWeekInput) {
         const tableIds = tablesBySourceSlot.get(slotId) ?? [];
         tableIds.push(tableId);
         tablesBySourceSlot.set(slotId, tableIds);
+      }
+
+      if (destinationIds.length > 0) {
+        // CANCELED rows are historical bookings: remove them first to avoid
+        // violating the reservations.slot_id foreign key when slots are deleted.
+        // reservation_allergens cascades on reservation deletion; table links
+        // cascade when the old slots are deleted.
+        await tx.delete(reservationsTable)
+          .where(inArray(reservationsTable.slotId, destinationIds));
+        await tx.delete(timeSlotTable)
+          .where(inArray(timeSlotTable.id, destinationIds));
       }
 
       for (const item of plan) {

@@ -1,4 +1,3 @@
-
 import Fastify, { type FastifyServerOptions } from "fastify";
 import secureSession from "@fastify/secure-session";
 import swagger from "@fastify/swagger";
@@ -17,6 +16,7 @@ import { staffBookingRoutes } from "./booking/routes/staff-booking-routes.ts";
 import { changeBookingRoutes } from "./booking/routes/change-booking-routes.ts";
 import { allergenRoutes } from "./allergens/allergen-routes.ts";
 import authRoutes from "./auth/auth-routes.ts";
+import { hikeRoutes } from "./hikes/hike-routes.ts";
 import AuthRepository from "./auth/auth-repository.ts";
 
 export function buildApp(opts: FastifyServerOptions = {}) {
@@ -70,6 +70,7 @@ export function buildApp(opts: FastifyServerOptions = {}) {
   server.register(bookingRoutes, { prefix: BASE_URL });
   server.register(staffBookingRoutes, { prefix: BASE_URL });
   server.register(changeBookingRoutes, { prefix: BASE_URL });
+  server.register(hikeRoutes, { prefix: BASE_URL });
   server.register(allergenRoutes, { prefix: BASE_URL });
   server.register(authRoutes, {
     prefix: `${BASE_URL}/auth`,
@@ -86,7 +87,7 @@ const isMain =
 if (isMain) {
   const fastify = buildApp();
 
-  fastify.listen({ port: env.PORT }, function (err, _address) {
+  fastify.listen({ port: env.PORT, host: "0.0.0.0" }, function (err, _address) {
     if (err) {
       fastify.log.error(err);
       process.exit(1);

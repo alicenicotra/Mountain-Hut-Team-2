@@ -201,6 +201,7 @@ describe("MH-125 / MH-144 POST /api/v1/slots/copy-week", () => {
     [{ sourceWeekStart: thirdWeekStart, weeks: 2 }, 400],
     [{ weeks: 0 }, 400],
     [{ weeks: 13 }, 400],
+    [{ sourceWeekStart: undefined }, 400],
     [{ weeks: 1.5 }, 400],
     [{ extra: true }, 400],
     [{ sourceWeekStart: "not-a-date" }, 400],
@@ -218,26 +219,76 @@ describe("MH-125 / MH-144 POST /api/v1/slots/copy-week", () => {
     expect(await countRows("slots")).toBe(0);
   });
 
-  it("returns 409 and does not copy any week when a later target week conflicts", async () => {
+  it("refuses every week without changing data if a later destination has a booking", async () => {
     await seedSourceWeek();
-    await db.insert(timeSlotTable).values({
+    const [firstOld] = await db.insert(timeSlotTable).values({
+      date: targetWeekStart, from: "10:00", to: "11:00",
+    }).returning();
+    const [bookedOld] = await db.insert(timeSlotTable).values({
       date: addUtcDays(thirdWeekStart, 2), from: "20:00", to: "22:00",
+    }).returning();
+    await db.insert(tableAvailabilityTable).values({ slotId: bookedOld.id, tableId: 1 });
+    await db.insert(reservationsTable).values({
+      userId: 3, slotId: bookedOld.id, tableId: 1, partySize: 1,
     });
     const response = await copyWeek({ weeks: 2 });
     expect(response.statusCode).toBe(409);
-    expect(response.json().error).toMatch(/overlap/i);
-    expect(await countRows("slots")).toBe(4);
-    expect(await countRows("links")).toBe(3);
+    expect(response.json().error).toMatch(/booking/i);
+    expect(await countRows("slots")).toBe(5);
+    expect(await countRows("links")).toBe(4);
+    expect(await countRows("reservations")).toBe(1);
+    expect(await db.select().from(timeSlotTable).where(eq(timeSlotTable.id, firstOld.id)))
+      .toHaveLength(1);
   });
 
-  it("keeps non-overlapping existing target slots intact", async () => {
+  it("replaces a destination week with non-overlapping slots and their table links", async () => {
     await seedSourceWeek();
-    await db.insert(timeSlotTable).values({
+    const [old] = await db.insert(timeSlotTable).values({
       date: targetWeekStart, from: "15:00", to: "16:00",
+    }).returning();
+    await db.insert(tableAvailabilityTable).values({ slotId: old.id, tableId: 1 });
+    const response = await copyWeek();
+    expect(response.statusCode).toBe(201);
+    expect(await countRows("slots")).toBe(6);
+    expect(await countRows("links")).toBe(6);
+    expect(await db.select().from(timeSlotTable).where(eq(timeSlotTable.id, old.id)))
+      .toHaveLength(0);
+  });
+
+  it("replaces overlapping destination slots when no bookings exist", async () => {
+    await seedSourceWeek();
+    const [old] = await db.insert(timeSlotTable).values({
+      date: targetWeekStart, from: "12:30", to: "13:00",
+    }).returning();
+    const response = await copyWeek();
+    expect(response.statusCode).toBe(201);
+    expect(await countRows("slots")).toBe(6);
+    expect(await db.select().from(timeSlotTable).where(eq(timeSlotTable.id, old.id)))
+      .toHaveLength(0);
+  });
+
+  it("replaces slots with only canceled bookings and removes those old reservations", async () => {
+    await seedSourceWeek();
+    const [old] = await db.insert(timeSlotTable).values({
+      date: targetWeekStart, from: "15:00", to: "16:00",
+    }).returning();
+    await db.insert(tableAvailabilityTable).values({ slotId: old.id, tableId: 1 });
+    await db.insert(reservationsTable).values({
+      userId: 3, slotId: old.id, tableId: 1, partySize: 1, status: "CANCELED",
     });
     const response = await copyWeek();
     expect(response.statusCode).toBe(201);
-    expect(await countRows("slots")).toBe(7);
+    expect(await countRows("slots")).toBe(6);
+    expect(await countRows("reservations")).toBe(0);
+    expect(await countRows("links")).toBe(6);
+  });
+
+  it("copies twelve weeks when weeks=12", async () => {
+    await seedSourceWeek();
+    const response = await copyWeek({ weeks: 12 });
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toMatchObject({ weeks: 12, copiedSlots: 36 });
+    expect(await countRows("slots")).toBe(39);
   });
 
   it("rolls back previously inserted copies when SQLite fails during a later insert", async () => {

@@ -1,30 +1,21 @@
-# Mountain-Hut-Team-2
+# Mountain Hut — Team 2
 
-A web application for managing meal reservations and dining schedules at an Alpine mountain hut. 
+A web application for managing meal reservations and dining schedules at an Alpine mountain hut.
 
-Hikers can view real-time table availability, book meals with specific dietary needs and allergens, receive automated email confirmations, and modify existing bookings. Hut employees can configure daily meal slots, allocate tables, manage capacities, and create bookings on behalf of hikers.
+Hikers can view real-time table availability, book meals with specific dietary needs and allergen requirements, receive automated email confirmations, and modify existing bookings. Hut staff (employees and managers) can configure daily time slots, allocate tables, manage capacities, and create bookings on behalf of hikers.
 
 ---
 
 ## Tech Stack
 
-| Layer | Technologies |
-| :--- | :--- |
-| **Frontend** | React 19 · TypeScript 5.9 · Vite 8 · Tailwind CSS v4 · React Router v7 |
-| **Backend** | Node.js (v20–v24) · TypeScript · Fastify v5 · Zod · Fastify Secure Session |
-| **Database** | SQLite via `@libsql/client` · Drizzle ORM · Drizzle Kit |
-| **Email** | Nodemailer (SMTP transport) · Mailpit (Local dev/testing) · Brevo (Production relay) |
-| **Testing** | Vitest (Client & Server unit/integration) · Playwright (Cross-browser E2E) |
-| **API Docs** | OpenAPI 3.0 / Swagger UI (`/docs`) |
-
----
-
-## Prerequisites
-
-- **[Node.js](https://nodejs.org/)** >= 20.x (LTS recommended, tested on v22 and v24)
-- **npm** >= 10.x
-- **[Docker](https://www.docker.com/)** *(optional)* — to run Mailpit locally for testing email capture
-- SQLite is file-based and embedded — no external database server needed.
+| Layer        | Technologies                                                                                         |
+| :----------- | :--------------------------------------------------------------------------------------------------- |
+| **Frontend** | React 19 · TypeScript 5.9 · Vite 8 · Tailwind CSS v4 · React Router v8                               |
+| **Backend**  | Node.js (v20–v24) · TypeScript · Fastify v5 · Zod · `@fastify/secure-session`                        |
+| **Database** | SQLite via `@libsql/client` · Drizzle ORM · Drizzle Kit                                              |
+| **Email**    | Nodemailer (SMTP transport) · Mailpit (local dev/testing) · Brevo (production relay)                 |
+| **Testing**  | Vitest (client & server unit/integration) · Playwright (cross-browser E2E) · Hurl (auth integration) |
+| **API Docs** | OpenAPI 3.0 / Swagger UI (`/docs`)                                                                   |
 
 ---
 
@@ -32,30 +23,65 @@ Hikers can view real-time table availability, book meals with specific dietary n
 
 ```text
 Mountain-Hut-Team-2/
-├── mountain-hut-client/     # React frontend application
-│   ├── src/                 # Components, pages, API clients, and utilities
-│   ├── tests/               # Vitest unit tests and Playwright E2E tests
-│   └── playwright.config.ts # E2E test configuration
-├── mountain-hut-server/     # Fastify REST API backend
+├── mountain-hut-client/          # React frontend application
 │   ├── src/
-│   │   ├── auth/            # Authentication & session handlers
-│   │   ├── booking/         # Table allocation, booking routes, and change rules
-│   │   ├── slots/           # Time slot & table configuration routes
-│   │   ├── allergens/       # Allergens service and routes
-│   │   ├── notifications/   # SMTP email sender, templates, confirmation logic
-│   │   └── db/              # Drizzle schema, migrations, and seed scripts
-│   ├── tests/               # Vitest unit/integration suites and Hurl scenarios
-│   └── docs/                # OpenAPI specification & API guidelines
-├── .github/workflows/       # CI and E2E test GitHub Actions workflows
-├── LICENSE                  # EUPL-1.2 Open Source Licence
-└── README.md                # System documentation
+│   │   ├── api/                  # Backend API client functions (fetch wrappers)
+│   │   ├── assets/               # Static assets (images, video)
+│   │   ├── components/
+│   │   │   ├── auth/             # AuthField
+│   │   │   ├── booking/          # ChangeBookingPanel, RequirementsFields
+│   │   │   ├── layout/           # AuthShell, Layout, Navbar, RequireRole
+│   │   │   └── slots/            # AddTableForm, CopyTablesPicker, CreateSlotForm, SlotList, TimeField
+│   │   ├── context/              # AuthProvider, AuthContext
+│   │   ├── hooks/                # useAuth
+│   │   ├── pages/                # One component per route
+│   │   ├── types/                # Shared TypeScript types
+│   │   └── utils/                # Date helpers, booking-rules
+│   └── tests/
+│       ├── unit/                 # Vitest unit tests (api/, components/, pages/, utils/)
+│       └── e2e/                  # Playwright end-to-end tests
+├── mountain-hut-server/          # Fastify REST API backend
+│   ├── src/
+│   │   ├── auth/                 # Registration, login, session handlers
+│   │   ├── booking/
+│   │   │   ├── routes/           # HTTP route handlers (availability, booking, change, staff)
+│   │   │   ├── services/         # Business logic (booking, change-booking, availability, notifications)
+│   │   │   └── rules/            # Pure domain rules (allocation, booking-rules, change-rules)
+│   │   ├── slots/                # Time-slot & table configuration routes and logic
+│   │   ├── allergens/            # Allergen list routes
+│   │   ├── notifications/        # SMTP email sender and utilities
+│   │   ├── db/                   # Drizzle schema, database client, seed script
+│   │   ├── config.ts             # Environment variable validation (Zod)
+│   │   └── server.ts             # Fastify app factory and entry point
+│   ├── tests/
+│   │   ├── unit/                 # Vitest unit tests
+│   │   └── integration/          # Vitest integration tests and Hurl auth scenarios
+│   └── docs/
+│       ├── openapi.yaml          # Hand-written OpenAPI 3.0 specification (served at /docs)
+│       ├── database.drawio       # Database ER diagram
+│       └── archive/              # Superseded per-task design notes (kept for historical context)
+├── retrospective/
+│   └── sprint-1.md               # Sprint 1 retrospective
+├── .github/workflows/            # CI (ci.yml) and E2E (e2e.yml) GitHub Actions workflows
+├── flake.nix / flake.lock        # Nix development environment
+├── LICENSE                       # EUPL-1.2
+└── README.md
 ```
 
 ---
 
-## Quick Start Guide
+## Prerequisites
 
-### 1. Backend Setup
+- **[Node.js](https://nodejs.org/)** >= 20.x (LTS recommended; tested on v22 and v24)
+- **npm** >= 10.x
+- **[Docker](https://www.docker.com/)** _(optional)_ — to run Mailpit locally for email capture during development
+- SQLite is file-based and embedded — no external database server is required.
+
+---
+
+## Quick Start
+
+### 1. Backend
 
 From the repository root:
 
@@ -63,140 +89,153 @@ From the repository root:
 cd mountain-hut-server
 npm install
 
-# 1. Create environment configuration
+# 1. Copy and fill in environment variables
 cp .env.template .env
 
-# 2. Push database schema to SQLite (creates local.db)
+# 2. Push the Drizzle schema to SQLite (creates local.db)
 npm run db:init
 
 # 3. Seed demo users, tables, time slots, and allergens
 npm run db:seed
 
-# 4. Start the backend development server
+# 4. Start the development server
 npm run dev
 ```
 
-The API server will start on **`http://localhost:3000`**.  
+The API server starts on **`http://localhost:3000`**.
 Interactive API documentation is available at **`http://localhost:3000/docs`**.
+All routes are prefixed with `/api/v1` (e.g. `GET /api/v1/availability`).
 
 ---
 
-### 2. Frontend Setup
+### 2. Frontend
 
-In a new terminal window:
+In a separate terminal:
 
 ```bash
 cd mountain-hut-client
 npm install
 
-# Start Vite development server
+# Start the Vite development server
 npm run dev
 ```
 
-The frontend application will start on **`http://localhost:5173`**.  
-Vite automatically proxies all `/api` requests to `http://localhost:3000`.
+The frontend application starts on **`http://localhost:5173`**.
+Vite proxies all `/api` requests to `http://localhost:3000`, so `/api/v1/...` calls reach the backend automatically.
 
 ---
 
-### 3. Local Email Service (Mailpit)
+### 3. Local Email Capture (Mailpit)
 
-The system automatically sends booking confirmations to hikers via SMTP. In local development, emails are routed to **Mailpit**, a fake local SMTP server with a web UI.
-
-Start Mailpit using Docker:
+The backend sends booking confirmation emails via SMTP. During local development, all outgoing messages are intercepted by **[Mailpit](https://mailpit.axllent.org/)** — a local fake SMTP server — so no real email is ever sent.
 
 ```bash
 docker run -d --name mailpit -p 8025:8025 -p 1025:1025 axllent/mailpit
+# If the container already exists: docker start mailpit
 ```
 
-- **Web Inbox**: [http://localhost:8025](http://localhost:8025) (inspect captured confirmation emails)
-- **SMTP Server**: `localhost:1025` (pre-configured in `.env.template`)
+| URL                     | Purpose                                           |
+| :---------------------- | :------------------------------------------------ |
+| `http://localhost:8025` | Web inbox — inspect captured confirmation emails  |
+| `localhost:1025`        | SMTP endpoint — pre-configured in `.env.template` |
 
-*(If Docker is not installed, the application continues to operate normally; failed email deliveries are logged without blocking bookings).*
-
----
-
-## Pre-configured Demo Accounts
-
-The database seed (`npm run db:seed`) provides test accounts with different roles:
-
-| Role | Email | Password | Description |
-| :--- | :--- | :--- | :--- |
-| **Hiker** | `giulia.verdi@example.com` | `giuliaverdi` | Regular hiker with existing booking history |
-| **Hiker** | `mario.rossi@example.com` | `mariorossi` | Regular hiker account |
-| **Employee** | `luca.neri@example.com` | `lucaneri` | Staff account (can manage slots & staff reservations) |
-| **Employee** | `test.employee@example.com` | `Password123!` | Test staff account |
-
-*(You can also register a brand new hiker account directly from the frontend registration page).*
+> If Docker is not available the application continues to run normally. Failed email deliveries are logged without blocking bookings.
 
 ---
 
-## Using the System
+## Demo Accounts
+
+The seed script (`npm run db:seed`) creates the following test accounts:
+
+| Role         | Email                       | Password       | Notes                                          |
+| :----------- | :-------------------------- | :------------- | :--------------------------------------------- |
+| **Hiker**    | `giulia.verdi@example.com`  | `giuliaverdi`  | Has existing booking history                   |
+| **Hiker**    | `mario.rossi@example.com`   | `mariorossi`   | Standard hiker account                         |
+| **Employee** | `luca.neri@example.com`     | `lucaneri`     | Staff account — manages slots & staff bookings |
+| **Employee** | `test.employee@example.com` | `Password123!` | Secondary staff account for testing            |
+
+New hiker accounts can also be registered directly from the frontend at `/register`.
+
+---
+
+## Using the Application
 
 ### As a Hiker
-1. **Log in** at `http://localhost:5173/login` with hiker credentials.
-2. **Book a Table** (`/booking`):
-   - Choose a meal date and party size.
-   - Real-time slot availability displays remaining capacity.
-   - Select dietary allergens (Milk, Eggs, Peanuts, Wheat, etc.) and add custom requirements/notes.
-   - Click **Book** to confirm. Table allocation is computed automatically to minimize unused seats.
-   - Check [http://localhost:8025](http://localhost:8025) to view your email confirmation with reference number, date, time, and requirements.
-3. **Manage Bookings** (`/my-bookings`):
-   - View upcoming and past reservations.
-   - Modify party size or time slot within 48 hours of booking (provided the slot start cutoff has not passed).
 
-### As Hut Staff (Employee)
-1. **Log in** with employee credentials (`luca.neri@example.com`).
-2. **Manage Slots & Tables** (`/employee/slots`):
+1. **Register or log in** at `/login` (or `/register` for a new account).
+2. **Check availability and book** (`/booking`):
+   - Select a date and party size to view real-time slot availability.
+   - Choose a time slot, then select dietary allergens (Milk, Eggs, Peanuts, Wheat, etc.) and add free-text requirements or notes.
+   - Confirm the booking. Table allocation is computed automatically to minimise unused seats.
+   - Bookings close **2 hours before the slot start time**.
+   - A confirmation email with the booking reference, date, time, and requirements is sent to the hiker's registered address. Check `http://localhost:8025` during development.
+3. **Manage bookings** (`/my-bookings`):
+   - View upcoming and past reservations.
+   - Modify party size or time slot within **48 hours of the original booking creation**, provided the slot's 2-hour cutoff has not passed.
+
+### As Hut Staff (Employee / Manager)
+
+1. **Log in** with a staff account (e.g. `luca.neri@example.com`).
+2. **Manage slots and tables** (`/employee/slots`):
    - Navigate day by day to create lunch and dinner slots.
    - Assign available tables (T1–T6) to specific slots.
-   - Copy yesterday's table layout or apply presets.
-3. **Staff Reservations** (`/employee/reserve`):
-   - Book tables for phone-in or walk-in hikers without being restricted by the 2-hour cutoff rule.
+   - Copy the previous day's table layout or apply presets.
+3. **Staff reservations** (`/employee/slots` → staff booking form):
+   - Book on behalf of a hiker by supplying the hiker's registered ID.
+   - Staff bookings bypass the 2-hour cutoff but cannot be placed after the slot ends.
 
 ---
 
 ## Running Tests
 
-Tests are organized by project and kind under `tests/unit`, `tests/integration`,
-and (for Playwright) `tests/e2e`. Within unit and integration, subfolders group
-tests by feature; filenames describe the behavior they cover. Hurl scenarios
-remain `.hurl` files under the server's `tests/integration` tree.
+### Backend
 
-### Backend Tests
 ```bash
 cd mountain-hut-server
 
-# Run unit and integration tests (Vitest)
+# All tests (unit + integration)
 npm test
 
-# Run only one test category
+# Unit tests only
 npm run test:unit
+
+# Integration tests only
 npm run test:integration
 
-# Run tests in watch mode
+# Watch mode
 npm run test:watch
+
+# Coverage report
+npm run test:coverage
 ```
 
-### Frontend Tests
+### Frontend
+
 ```bash
 cd mountain-hut-client
 
-# Run Vitest unit and component tests
+# All Vitest unit tests
 npm test
 
-# Run only unit tests
+# Unit tests only
 npm run test:unit
 
-# Run Playwright end-to-end tests
-npm run test:e2e
+# Watch mode
+npm run test:watch
 
-# Run ESLint and TypeScript checks
+# Coverage report
+npm run test:coverage
+
+# ESLint check
 npm run lint
+
+# TypeScript check + production build
 npm run build
 ```
 
-### End-to-End (E2E) Browser Tests
-The end-to-end suite uses [Playwright](https://playwright.dev/) to verify full user journeys across frontend and backend.
+### End-to-End (Playwright)
+
+Requires both servers to be running (backend on port 3000, frontend on port 5173).
 
 ```bash
 cd mountain-hut-client
@@ -204,15 +243,15 @@ cd mountain-hut-client
 # Install browser binaries (first time only)
 npx playwright install chromium
 
-# Ensure the backend server is running on port 3000, then execute:
+# Run the E2E suite
 npm run test:e2e
 ```
 
 ---
 
-## Production Email Configuration (Brevo)
+## Production Email Configuration
 
-To dispatch real emails in production instead of using Mailpit, configure an external SMTP relay such as [Brevo](https://www.brevo.com/) in `mountain-hut-server/.env`:
+To send real emails in production, replace the Mailpit SMTP settings with an external relay such as [Brevo](https://www.brevo.com/) in `mountain-hut-server/.env`:
 
 ```env
 SMTP_HOST=smtp-relay.brevo.com
@@ -225,25 +264,26 @@ MAIL_FROM_NAME="Mountain Hut Reservations"
 MAIL_REPLY_TO=info@mountain-hut.example
 ```
 
+> `SMTP_PASS` is the **SMTP key** generated in the Brevo dashboard, not the Brevo account password. No code changes are required — only configuration.
+
 ---
 
 ## Git & Contribution Workflow
 
-1. Create a task branch branched from `dev`:
+1. Branch from `dev`:
    ```bash
-   git checkout dev
-   git pull origin dev
+   git checkout dev && git pull origin dev
    git checkout -b feature/MH-xx-short-description
    ```
-2. Commit with task reference:
+2. Commit with the task reference:
    ```bash
-   git commit -m "MH-xx: concise description of changes"
+   git commit -m "MH-xx: concise description of change"
    ```
-3. Push to origin and open a Pull Request targeting **`dev`**.
-4. Pull requests require all CI checks (linting, backend tests, frontend tests, E2E tests) to pass before merging.
+3. Push and open a Pull Request targeting **`dev`**.
+4. All CI checks must pass before merging: ESLint, TypeScript build, backend tests, frontend tests, E2E tests.
 
 ---
 
 ## License
 
-This project is licensed under the **[European Union Public Licence v1.2 (EUPL-1.2)](https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12)** (see [LICENSE](LICENSE)).
+This project is licensed under the **[European Union Public Licence v1.2 (EUPL-1.2)](https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12)** — see [LICENSE](LICENSE).
