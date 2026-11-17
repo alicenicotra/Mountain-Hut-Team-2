@@ -102,6 +102,7 @@ describe("MH-140 hike time helpers", () => {
   describe("form validation", () => {
     const now = Date.parse("2030-06-15T07:00");
     const valid = {
+      destination: "Lake",
       route: "Lake loop on trail 12",
       departure: "2030-06-15T08:00",
       expectedReturn: "2030-06-15T12:00",
@@ -115,6 +116,8 @@ describe("MH-140 hike time helpers", () => {
     });
 
     it.each([
+      [{ destination: "   " }, "Enter your destination."],
+      [{ destination: "x".repeat(201) }, "The destination is too long (max 200 characters)."],
       [{ route: "   " }, "Describe your route."],
       [{ route: "x".repeat(2001) }, "The route description is too long (max 2000 characters)."],
       [{ departure: "" }, "Choose your departure date and time."],

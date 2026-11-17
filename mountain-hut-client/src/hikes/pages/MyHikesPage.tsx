@@ -37,7 +37,8 @@ function HikeCard({ hike }: { hike: ListedHike }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-semibold text-stone-900">
+          <p className="font-semibold text-stone-900">{hike.destination}</p>
+          <p className="text-sm text-stone-700">
             {formatHikeRange(hike.departureAt, hike.expectedReturnAt)}
           </p>
           <p className="text-xs text-stone-500">Out for {formatDuration(durationMs)}</p>
@@ -49,7 +50,11 @@ function HikeCard({ hike }: { hike: ListedHike }) {
         </span>
       </div>
 
-      <p className="mt-2 whitespace-pre-line text-sm text-stone-700">{hike.routeDescription}</p>
+      {hike.intermediatePoints.length > 0 && (
+        <p className="mt-2 text-sm text-stone-700">Via {hike.intermediatePoints.join(" → ")}</p>
+      )}
+
+      <p className="mt-2 whitespace-pre-line text-sm text-stone-600">{hike.routeDescription}</p>
 
       {hike.emergencyContactPhone && (
         <p className="mt-2 text-xs text-stone-500">

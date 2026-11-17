@@ -12,7 +12,9 @@ const hike = {
   userId: 1,
   departureAt: "2030-06-15T06:00:00.000Z",
   expectedReturnAt: "2030-06-15T15:00:00.000Z",
+  destination: "Lake",
   routeDescription: "Lake loop on trail 12",
+  intermediatePoints: ["Trail 12 junction"],
   emergencyContactPhone: null,
   createdAt: "2030-06-01 10:00:00",
 };
@@ -27,7 +29,9 @@ describe("MH-140 hikes API client", () => {
     const request = {
       departureAt: hike.departureAt,
       expectedReturnAt: hike.expectedReturnAt,
+      destination: hike.destination,
       routeDescription: hike.routeDescription,
+      intermediatePoints: hike.intermediatePoints,
     };
 
     expect(await registerHike(request)).toEqual(hike);

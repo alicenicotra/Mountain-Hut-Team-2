@@ -21,6 +21,8 @@ function hike(id: number, startsIn: number, lasts: number, extra: Partial<Hike> 
     departureAt: new Date(departure).toISOString(),
     expectedReturnAt: new Date(departure + lasts).toISOString(),
     routeDescription: `Route ${id}`,
+    destination: `Destination ${id}`,
+    intermediatePoints: [],
     emergencyContactPhone: null,
     createdAt: "2030-06-01 10:00:00",
     ...extra,

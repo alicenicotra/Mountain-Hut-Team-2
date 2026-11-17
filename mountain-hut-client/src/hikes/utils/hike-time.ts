@@ -1,7 +1,13 @@
-// Helpers for the hike form. A datetime-local input gives "YYYY-MM-DDTHH:MM"
+// Helpers for the hike pages. A datetime-local input gives "YYYY-MM-DDTHH:MM"
 // in the browser's local time; the API wants ISO 8601 instants.
 
 const HOUR_MS = 60 * 60 * 1000;
+
+// Limits of the hike API (MH-139)
+export const MAX_DESTINATION_LENGTH = 200;
+export const MAX_ROUTE_LENGTH = 2000;
+export const MAX_POINTS = 30;
+export const MAX_POINT_LENGTH = 200;
 
 export function localInputToIso(value: string): string | null {
   const ms = Date.parse(value);
@@ -77,6 +83,7 @@ export function hikePhase(
 }
 
 export interface HikeFormValues {
+  destination: string;
   route: string;
   departure: string;
   expectedReturn: string;
@@ -86,13 +93,20 @@ export interface HikeFormValues {
 // The same rules as the backend, so the hiker gets the message right away.
 // Returns the first problem, or null when the form can be sent.
 export function validateHikeForm(values: HikeFormValues, nowMs: number): string | null {
+  const destination = values.destination.trim();
   const route = values.route.trim();
   const phone = values.phone.trim();
   const departure = Date.parse(values.departure);
   const expectedReturn = Date.parse(values.expectedReturn);
 
+  if (!destination) return "Enter your destination.";
+  if (destination.length > MAX_DESTINATION_LENGTH) {
+    return `The destination is too long (max ${MAX_DESTINATION_LENGTH} characters).`;
+  }
   if (!route) return "Describe your route.";
-  if (route.length > 2000) return "The route description is too long (max 2000 characters).";
+  if (route.length > MAX_ROUTE_LENGTH) {
+    return `The route description is too long (max ${MAX_ROUTE_LENGTH} characters).`;
+  }
   if (!Number.isFinite(departure)) return "Choose your departure date and time.";
   if (!Number.isFinite(expectedReturn)) return "Choose when you expect to be back.";
   if (departure <= nowMs) return "Departure must be in the future.";

@@ -1,6 +1,5 @@
-// Example routes offered on the register page. Only the description is sent
-// to the backend; the rest is shown to help the hiker choose.
-// TODO: replace with the real routes around the hut (ask the PO).
+// Example routes offered on the register page. They fill in the destination,
+// the stops and the description; the rest is shown to help the hiker choose.
 export interface SuggestedRoute {
   id: string;
   art: "lake" | "ridge" | "summit";
@@ -9,6 +8,8 @@ export interface SuggestedRoute {
   hours: number; // usual time out, also used to suggest the return
   distanceKm: number;
   ascentM: number;
+  destination: string;
+  points: string[];
   description: string;
 }
 
@@ -21,6 +22,8 @@ export const SUGGESTED_ROUTES: SuggestedRoute[] = [
     hours: 3,
     distanceKm: 7,
     ascentM: 250,
+    destination: "Lake",
+    points: ["Trail 12 junction", "Lake shore"],
     description:
       "Lake loop: from the hut down trail 12 to the lake, around the shore and back on the same trail.",
   },
@@ -32,6 +35,8 @@ export const SUGGESTED_ROUTES: SuggestedRoute[] = [
     hours: 5,
     distanceKm: 11,
     ascentM: 600,
+    destination: "Ridge viewpoint",
+    points: ["Pass", "Ridge"],
     description:
       "Ridge walk: trail 14 up to the pass, along the ridge to the viewpoint, then back down trail 12.",
   },
@@ -43,6 +48,8 @@ export const SUGGESTED_ROUTES: SuggestedRoute[] = [
     hours: 8,
     distanceKm: 14,
     ascentM: 1100,
+    destination: "Summit",
+    points: ["Pass", "Summit path"],
     description:
       "Summit trail: trail 14 to the pass, then the marked summit path to the top and back the same way.",
   },

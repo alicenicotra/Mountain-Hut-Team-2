@@ -4,8 +4,11 @@ import { ApiError } from "../../shared/api/client.ts";
 import AuthShell from "../../shared/components/AuthShell.tsx";
 import { registerHike } from "../api/hikes-api.ts";
 import RoutePicker from "../components/RoutePicker.tsx";
+import StopsField from "../components/StopsField.tsx";
 import type { Hike } from "../types/hike.ts";
 import {
+  MAX_DESTINATION_LENGTH,
+  MAX_ROUTE_LENGTH,
   addHours,
   formatDuration,
   formatHikeRange,
@@ -20,7 +23,6 @@ import {
   type SuggestedRoute,
 } from "../utils/suggested-routes.ts";
 
-const MAX_ROUTE_LENGTH = 2000;
 const HOUR_MS = 60 * 60 * 1000;
 const RETURN_PRESETS = [3, 5, 8, 12]; // hours after departure
 
@@ -52,7 +54,9 @@ function registerErrorMessage(err: unknown): string {
 
 export default function RegisterHikePage() {
   const [routeId, setRouteId] = useState<string | null>(null);
+  const [destination, setDestination] = useState("");
   const [route, setRoute] = useState("");
+  const [points, setPoints] = useState<string[]>([]);
   const [departure, setDeparture] = useState(nextFullHour);
   const [expectedReturn, setExpectedReturn] = useState("");
   const [phone, setPhone] = useState("");
@@ -67,17 +71,23 @@ export default function RegisterHikePage() {
   const reversed = hasRange && durationMs <= 0;
   const suggested = SUGGESTED_ROUTES.find((r) => r.id === routeId) ?? null;
 
-  // A suggested route fills in its description and, once the departure is
-  // known, the expected return. Both stay editable.
+  // A suggested route fills in the destination, its stops, the description
+  // and, once the departure is known, the expected return. All stay editable.
   function handleRouteSelect(picked: SuggestedRoute | null) {
     if (picked === null) {
       setRouteId(CUSTOM_ROUTE_ID);
-      // Keep what the hiker typed, but drop the text of a suggested route
-      if (SUGGESTED_ROUTES.some((r) => r.description === route)) setRoute("");
+      // Keep what the hiker typed, but drop what a suggested route filled in
+      if (SUGGESTED_ROUTES.some((r) => r.description === route)) {
+        setDestination("");
+        setRoute("");
+        setPoints([]);
+      }
       return;
     }
     setRouteId(picked.id);
+    setDestination(picked.destination);
     setRoute(picked.description);
+    setPoints(picked.points);
     if (departure) setExpectedReturn(addHours(departure, picked.hours));
   }
 
@@ -91,7 +101,7 @@ export default function RegisterHikePage() {
     if (submitting) return;
 
     const problem = validateHikeForm(
-      { route, departure, expectedReturn, phone },
+      { destination, route, departure, expectedReturn, phone },
       Date.now(),
     );
     if (problem) {
@@ -107,12 +117,16 @@ export default function RegisterHikePage() {
       const hike = await registerHike({
         departureAt: localInputToIso(departure)!,
         expectedReturnAt: localInputToIso(expectedReturn)!,
+        destination: destination.trim(),
         routeDescription: route.trim(),
+        ...(points.length > 0 ? { intermediatePoints: points } : {}),
         ...(contact ? { emergencyContactPhone: contact } : {}),
       });
       setRegistered(hike);
       setRouteId(null);
+      setDestination("");
       setRoute("");
+      setPoints([]);
       setDeparture(nextFullHour());
       setExpectedReturn("");
       setPhone("");
@@ -149,8 +163,8 @@ export default function RegisterHikePage() {
               <path d="M5 13l4 4L19 7" />
             </svg>
             <p>
-              <span className="font-semibold">Hike registered.</span> The hut expects you back by{" "}
-              {formatHikeTime(registered.expectedReturnAt)}.{" "}
+              <span className="font-semibold">Hike to {registered.destination} registered.</span>{" "}
+              The hut expects you back by {formatHikeTime(registered.expectedReturnAt)}.{" "}
               <Link to="/my-hikes" className="font-semibold text-green-700 underline">
                 See my hikes
               </Link>
@@ -166,6 +180,18 @@ export default function RegisterHikePage() {
         <div className="grid gap-5 md:grid-cols-2 md:gap-8">
           {/* Left: where */}
           <div className="flex flex-col gap-4 md:border-r md:border-stone-200 md:pr-8">
+            <div>
+              <SectionLabel htmlFor="destination">Destination</SectionLabel>
+              <input
+                id="destination"
+                maxLength={MAX_DESTINATION_LENGTH}
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+                placeholder="e.g. Summit, lake, bivouac"
+                className={inputClass}
+              />
+            </div>
+
             <div>
               <SectionLabel htmlFor="routeDescription">Route details</SectionLabel>
               <textarea
@@ -183,25 +209,10 @@ export default function RegisterHikePage() {
               </div>
             </div>
 
-            <div>
-              <SectionLabel htmlFor="emergencyContactPhone">Emergency contact (optional)</SectionLabel>
-              <input
-                id="emergencyContactPhone"
-                type="tel"
-                inputMode="tel"
-                maxLength={40}
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+39 333 123 4567"
-                className={inputClass}
-              />
-              <p className="mt-1 text-xs text-stone-500">
-                Someone the hut can call if you can't be reached.
-              </p>
-            </div>
+            <StopsField points={points} onChange={setPoints} inputClass={inputClass} />
           </div>
 
-          {/* Right: when */}
+          {/* Right: when, and who to call */}
           <div className="flex flex-col gap-4">
             <div>
               <SectionLabel htmlFor="departureAt">Departure</SectionLabel>
@@ -247,6 +258,23 @@ export default function RegisterHikePage() {
                   );
                 })}
               </div>
+            </div>
+
+            <div>
+              <SectionLabel htmlFor="emergencyContactPhone">Emergency contact (optional)</SectionLabel>
+              <input
+                id="emergencyContactPhone"
+                type="tel"
+                inputMode="tel"
+                maxLength={40}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+39 333 123 4567"
+                className={inputClass}
+              />
+              <p className="mt-1 text-xs text-stone-500">
+                Someone the hut can call if you can't be reached.
+              </p>
             </div>
 
             <div className="mt-auto space-y-3">
