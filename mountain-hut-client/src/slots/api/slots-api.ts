@@ -117,10 +117,15 @@ export async function copyWeek(input: CopyWeekRequest): Promise<CopyWeekResult> 
         return { ...slot, date, id: 0, tables: [...slot.tables] };
       }),
     ).flat();
-    if (copied.some((slot) => mockSlots.some((existing) =>
-      existing.date === slot.date && existing.from < slot.to && slot.from < existing.to,
-    ))) throw new ApiError(409, "Destination slot overlaps with an existing slot");
+    // MH-09: replace all slots within the destination weeks, not only overlaps.
+    // Mock data has no reservations; the real backend blocks replacement when
+    // any destination slot has an active booking.
     let nextId = Math.max(0, ...mockSlots.map((slot) => slot.id)) + 1;
+    for (let index = mockSlots.length - 1; index >= 0; index--) {
+      if (mockSlots[index].date >= input.targetWeekStart && mockSlots[index].date <= lastTargetDay) {
+        mockSlots.splice(index, 1);
+      }
+    }
     for (const slot of copied) mockSlots.push({ ...slot, id: nextId++ });
     return { ...input, copiedSlots: copied.length };
   }
