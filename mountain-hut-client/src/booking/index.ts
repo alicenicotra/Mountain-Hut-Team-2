@@ -8,3 +8,4 @@ export * from "./types/availability.ts";
 export * from "./api/bookings-api.ts";
 export * from "./api/availability-api.ts";
 export * from "./api/allergens-api.ts";
+export * from "./storage/booking-draft.ts";

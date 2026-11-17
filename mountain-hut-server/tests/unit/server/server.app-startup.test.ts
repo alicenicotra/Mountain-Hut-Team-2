@@ -43,6 +43,9 @@ vi.mock("../../../src/booking/routes/change-booking-routes.ts", () => ({
 vi.mock("../../../src/allergens/allergen-routes.ts", () => ({
   allergenRoutes: vi.fn(),
 }));
+vi.mock("../../../src/hikes/hike-routes.ts", () => ({
+  hikeRoutes: vi.fn(),
+}));
 vi.mock("../../../src/auth/auth-routes.ts", () => ({ default: vi.fn() }));
 vi.mock("../../../src/auth/auth-repository.ts", () => ({
   default: { getUserById: vi.fn() },
@@ -69,8 +72,11 @@ describe("server app startup", () => {
     await loadAsEntrypoint();
 
     expect(mocks.server.listen).toHaveBeenCalledTimes(1);
-    expect(mocks.server.listen.mock.calls[0][0]).toEqual({ port: 3000 });
-    expect(mocks.server.register).toHaveBeenCalledTimes(10);
+    expect(mocks.server.listen.mock.calls[0][0]).toEqual({
+      port: 3000,
+      host: "0.0.0.0",
+    });
+    expect(mocks.server.register).toHaveBeenCalledTimes(11);
     expect(mocks.server.get).toHaveBeenCalledWith(
       "/",
       expect.any(Function),
