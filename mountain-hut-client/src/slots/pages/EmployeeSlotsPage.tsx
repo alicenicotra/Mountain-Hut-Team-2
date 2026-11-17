@@ -63,7 +63,6 @@ export default function EmployeeSlotsPage() {
   }, [date, reloadSlots]);
 
   const loadingSlots = slotsResult?.date !== date;
-  const today = todayString();
 
   function handleSlotCreated(slot: TimeSlot) {
     setSlotsResult((current) =>
@@ -114,16 +113,6 @@ export default function EmployeeSlotsPage() {
           className={dayButton}
         >
           →
-        </button>
-        <button type="button" onClick={() => setDate(today)} className={dayButton}>
-          Today
-        </button>
-        <button
-          type="button"
-          onClick={() => setDate(shiftDate(today, 1))}
-          className={dayButton}
-        >
-          Tomorrow
         </button>
         <p className="text-xl font-semibold sm:ml-auto">{formatDay(date)}</p>
       </div>

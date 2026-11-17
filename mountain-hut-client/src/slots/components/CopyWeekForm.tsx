@@ -101,7 +101,11 @@ export default function CopyWeekForm({ selectedDate, onCopied }: CopyWeekFormPro
         <p className="text-sm text-amber-700">Source and destination weeks cannot overlap.</p>
       )}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs text-stone-500">If any destination slot overlaps an existing slot, nothing is copied.</p>
+        <p className="text-xs text-stone-500">
+          Existing slots in destination weeks are replaced.
+          If any destination week has active bookings,
+          nothing is copied.
+        </p>
         <button
           type="submit"
           disabled={invalid || submitting}
