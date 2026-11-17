@@ -72,7 +72,10 @@ describe("server app startup", () => {
     await loadAsEntrypoint();
 
     expect(mocks.server.listen).toHaveBeenCalledTimes(1);
-    expect(mocks.server.listen.mock.calls[0][0]).toEqual({ port: 3000 });
+    expect(mocks.server.listen.mock.calls[0][0]).toEqual({
+      port: 3000,
+      host: "0.0.0.0",
+    });
     expect(mocks.server.register).toHaveBeenCalledTimes(11);
     expect(mocks.server.get).toHaveBeenCalledWith(
       "/",
