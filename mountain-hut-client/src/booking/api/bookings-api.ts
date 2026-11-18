@@ -1,9 +1,11 @@
 import { apiFetch } from "../../shared/api/client.ts";
 import type {
   BookingResult,
+  CancelBookingResult,
   ChangeBookingRequest,
   ChangeBookingResult,
   CreateBookingRequest,
+  CreateStaffBookingRequest,
   MyBooking,
 } from "../types/booking.ts";
 
@@ -32,6 +34,14 @@ export function createBooking(slotId: number, partySize: number, extras: Booking
   });
 }
 
+// POST /api/v1/staff/bookings: staff book for an existing hiker (MH-07)
+export function createStaffBooking(body: CreateStaffBookingRequest) {
+  return apiFetch<BookingResult>("/staff/bookings", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
 // GET /api/v1/bookings/mine: the logged-in hiker's bookings
 export function getMyBookings() {
   return apiFetch<MyBooking[]>("/bookings/mine");
@@ -42,5 +52,13 @@ export function changeBooking(bookingId: number, changes: ChangeBookingRequest) 
   return apiFetch<ChangeBookingResult>(`/bookings/${bookingId}`, {
     method: "PATCH",
     body: JSON.stringify(changes),
+  });
+}
+
+// DELETE /api/v1/bookings/:id: cancel a booking
+export function cancelBooking(bookingId: number) {
+  return apiFetch<CancelBookingResult>(`/bookings/${bookingId}`, {
+    method: "DELETE",
+    headers: {},
   });
 }
