@@ -8,7 +8,9 @@ export async function cancelBookingRoutes(app: FastifyInstance) {
       return reply.status(401).send({ error: "Authentication required" });
     }
     if (request.user.type !== "HIKER") {
-      return reply.status(403).send({ error: "Only hikers can cancel bookings" });
+      return reply
+        .status(403)
+        .send({ error: "Only hikers can cancel bookings" });
     }
 
     const rawId = (request.params as { bookingId: string }).bookingId;
@@ -21,7 +23,10 @@ export async function cancelBookingRoutes(app: FastifyInstance) {
     }
 
     try {
-      const result = await cancelBooking({ bookingId, userId: request.user.id });
+      const result = await cancelBooking({
+        bookingId,
+        userId: request.user.id,
+      });
       return reply.status(200).send(result);
     } catch (error) {
       if (error instanceof BookingError) {
