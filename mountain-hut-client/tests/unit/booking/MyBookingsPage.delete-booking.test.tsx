@@ -118,6 +118,66 @@ describe('MyBookingsPage — Delete / Cancel booking (MH-107)', () => {
     })
   })
 
+<<<<<<< Updated upstream
+=======
+  it('renders Delete button even when the 48-hour change window has expired', async () => {
+    // Created 3 days ago, but slot is tomorrow: change is blocked, cancel is allowed
+    const expiredChangeBooking = createBooking({
+      id: 77,
+      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19),
+    })
+    vi.mocked(getMyBookings).mockResolvedValue([expiredChangeBooking])
+
+    render(
+      <MemoryRouter>
+        <MyBookingsPage />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText(/Changes closed: more than 48 hours since you booked/i)).toBeInTheDocument()
+    })
+
+    // Change button must be hidden, but Delete button must be available
+    expect(screen.queryByRole('button', { name: 'Change' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+  })
+
+  it('renders Delete button even when less than 2 hours before the slot', async () => {
+    // Slot in 1 hour: change is blocked (too-close), cancel is allowed before slot starts
+    const now = new Date()
+    const inOneHour = new Date(now.getTime() + 60 * 60 * 1000)
+    const inTwoHours = new Date(now.getTime() + 2 * 60 * 60 * 1000)
+    const yyyy = inOneHour.getFullYear()
+    const mm = String(inOneHour.getMonth() + 1).padStart(2, '0')
+    const dd = String(inOneHour.getDate()).padStart(2, '0')
+    const from = `${String(inOneHour.getHours()).padStart(2, '0')}:${String(inOneHour.getMinutes()).padStart(2, '0')}`
+    const to = `${String(inTwoHours.getHours()).padStart(2, '0')}:${String(inTwoHours.getMinutes()).padStart(2, '0')}`
+
+    const tooCloseBooking = createBooking({
+      id: 88,
+      date: `${yyyy}-${mm}-${dd}`,
+      from,
+      to,
+      createdAt: now.toISOString().replace('T', ' ').slice(0, 19),
+    })
+    vi.mocked(getMyBookings).mockResolvedValue([tooCloseBooking])
+
+    render(
+      <MemoryRouter>
+        <MyBookingsPage />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText(/Changes closed: less than 2 hours before your slot/i)).toBeInTheDocument()
+    })
+
+    expect(screen.queryByRole('button', { name: 'Change' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+  })
+
+>>>>>>> Stashed changes
   it('does not render Delete button for past or already cancelled bookings', async () => {
     const pastCancelledBooking = createBooking({
       id: 55,
