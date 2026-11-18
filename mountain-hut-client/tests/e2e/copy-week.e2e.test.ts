@@ -51,7 +51,7 @@ async function bookAsNewHiker(request: APIRequestContext, day: string, from: str
   const email = `e2e.hiker.${randomUUID()}@example.com`
   const password = 'Password123!'
   const registered = await request.post('/api/v1/auth/register', {
-    data: { email, password, name: 'E2E', surname: 'Hiker', phone_number: '+393330000000' },
+    data: { email, password, name: 'E2E', surname: 'Hiker', phoneNumber: '+393330000000' },
   })
   expect(registered.status()).toBe(201)
   const login = await request.post('/api/v1/auth/login', { data: { email, password } })
