@@ -390,5 +390,23 @@ describe("MH-106: DELETE /api/v1/bookings/:bookingId — Cancel a booking API", 
       });
       expect(rebookRes.statusCode).toBe(201);
     });
+
+    it("500: returns internal server error on unexpected cancellation failure", async () => {
+      const cancelModule =
+        await import("../../../src/booking/services/cancel-booking.ts");
+      const spy = vi
+        .spyOn(cancelModule, "cancelBooking")
+        .mockRejectedValueOnce(new Error("Unexpected failure"));
+
+      try {
+        const cookie = await loginAs(1);
+        const res = await deleteBooking(1, cookie);
+
+        expect(res.statusCode).toBe(500);
+        expect(res.json()).toEqual({ error: "Internal server error" });
+      } finally {
+        spy.mockRestore();
+      }
+    });
   });
 });
