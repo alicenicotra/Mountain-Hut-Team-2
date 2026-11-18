@@ -6,6 +6,8 @@ services:
     image: ${DOCKERHUB_USERNAME:-group02}/mountain-hut-server:latest
     container_name: mountain-hut-server
     restart: unless-stopped
+    env_file:
+      - ./mountain-hut-server/.env
     ports:
       - "3000:3000"
     environment:
