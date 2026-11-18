@@ -49,7 +49,7 @@ export default function RegisterPage() {
         name: name.trim(),
         surname: surname.trim(),
         email: email.trim(),
-        phone_number: phone.trim(),
+        phoneNumber: phone.trim(),
         password,
         type: 'HIKER', // only hikers sign up themselves; staff accounts are created by a manager
       })
