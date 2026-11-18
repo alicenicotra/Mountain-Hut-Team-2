@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { getMyBookings } from "../api/bookings-api.ts";
+import { cancelBooking, getMyBookings } from "../api/bookings-api.ts";
 import { getTables } from "../../slots/api/slots-api.ts";
 import AuthShell from "../../shared/components/AuthShell.tsx";
 import ChangeBookingPanel from "../components/ChangeBookingPanel.tsx";
@@ -72,6 +72,7 @@ export default function MyBookingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0); // bump to load the list again
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -102,6 +103,21 @@ export default function MyBookingsPage() {
     setEditingId(null);
     setNotice("Your booking has been updated.");
     setReloadKey((k) => k + 1);
+  }
+
+  async function handleCancel(bookingId: number) {
+    setNotice(null);
+    setError(null);
+    setCancellingId(bookingId);
+    try {
+      await cancelBooking(bookingId);
+      setNotice("Your booking has been cancelled.");
+      setReloadKey((k) => k + 1);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to cancel booking");
+    } finally {
+      setCancellingId(null);
+    }
   }
 
   const upcoming = (data?.bookings ?? [])
@@ -168,16 +184,26 @@ export default function MyBookingsPage() {
               <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                 <p className={`text-xs ${info.open ? "text-green-700" : "text-stone-500"}`}>{info.text}</p>
                 {info.open && !editing && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNotice(null);
-                      setEditingId(b.id);
-                    }}
-                    className="rounded-lg border border-green-600 px-3 py-1 text-sm font-semibold text-green-700 hover:bg-green-50 transition-colors cursor-pointer"
-                  >
-                    Change
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNotice(null);
+                        setEditingId(b.id);
+                      }}
+                      className="rounded-lg border border-green-600 px-3 py-1 text-sm font-semibold text-green-700 hover:bg-green-50 transition-colors cursor-pointer"
+                    >
+                      Change
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCancel(b.id)}
+                      disabled={cancellingId === b.id}
+                      className="rounded-lg border border-red-600 px-3 py-1 text-sm font-semibold text-red-700 hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {cancellingId === b.id ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
                 )}
               </div>
             )}
