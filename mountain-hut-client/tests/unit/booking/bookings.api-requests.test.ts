@@ -148,6 +148,7 @@ describe('bookings API', () => {
     const [url, options] = fetchMock.mock.calls[0]
     expect(url).toBe('/api/v1/bookings/12')
     expect(options.method).toBe('DELETE')
+    expect(options.headers).toEqual({})
     expect(canceled).toEqual(result)
   })
 

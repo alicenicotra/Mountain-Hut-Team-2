@@ -50,5 +50,6 @@ export function changeBooking(bookingId: number, changes: ChangeBookingRequest) 
 export function cancelBooking(bookingId: number) {
   return apiFetch<CancelBookingResult>(`/bookings/${bookingId}`, {
     method: "DELETE",
+    headers: {},
   });
 }
