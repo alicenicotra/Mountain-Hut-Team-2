@@ -118,8 +118,6 @@ describe('MyBookingsPage — Delete / Cancel booking (MH-107)', () => {
     })
   })
 
-<<<<<<< Updated upstream
-=======
   it('renders Delete button even when the 48-hour change window has expired', async () => {
     // Created 3 days ago, but slot is tomorrow: change is blocked, cancel is allowed
     const expiredChangeBooking = createBooking({
@@ -177,7 +175,6 @@ describe('MyBookingsPage — Delete / Cancel booking (MH-107)', () => {
     expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
   })
 
->>>>>>> Stashed changes
   it('does not render Delete button for past or already cancelled bookings', async () => {
     const pastCancelledBooking = createBooking({
       id: 55,

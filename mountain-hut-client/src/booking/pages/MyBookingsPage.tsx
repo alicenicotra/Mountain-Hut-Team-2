@@ -182,33 +182,6 @@ export default function MyBookingsPage() {
 
             {b.status === "PLACED" && !isPast(b) && (
               <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-<<<<<<< Updated upstream
-                <p className={`text-xs ${info.open ? "text-green-700" : "text-stone-500"}`}>{info.text}</p>
-                {info.open && !editing && (
-<<<<<<< Updated upstream
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNotice(null);
-                        setEditingId(b.id);
-                      }}
-                      className="rounded-lg border border-green-600 px-3 py-1 text-sm font-semibold text-green-700 hover:bg-green-50 transition-colors cursor-pointer"
-                    >
-                      Change
-                    </button>
-=======
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNotice(null);
-                      setEditingId(b.id);
-                    }}
-                    className="rounded-lg border border-green-600 px-3 py-1 text-sm font-semibold text-green-700 hover:bg-green-50 transition-colors cursor-pointer"
-                  >
-                    Change
-                  </button>
-=======
                 {info && (
                   <p className={`text-xs ${info.open ? "text-green-700" : "text-stone-500"}`}>{info.text}</p>
                 )}
@@ -226,7 +199,6 @@ export default function MyBookingsPage() {
                         Change
                       </button>
                     )}
->>>>>>> Stashed changes
                     <button
                       type="button"
                       onClick={() => handleCancel(b.id)}
@@ -236,10 +208,6 @@ export default function MyBookingsPage() {
                       {cancellingId === b.id ? "Deleting..." : "Delete"}
                     </button>
                   </div>
-<<<<<<< Updated upstream
-=======
->>>>>>> Stashed changes
->>>>>>> Stashed changes
                 )}
               </div>
             )}
