@@ -1,4 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import type { Client } from "@libsql/client";
 import argon2 from "argon2";
 import { and, eq } from "drizzle-orm";
@@ -15,7 +23,11 @@ import { resetTestDatabase } from "../../test-database.ts";
 vi.mock("../../../src/db/database.ts", async () => {
   const { createIsolatedTestDatabase } = await import("../../test-database.ts");
   const { db, client, cleanup } = createIsolatedTestDatabase();
-  return { db, __integrationTestClient: client, __integrationTestCleanup: cleanup };
+  return {
+    db,
+    __integrationTestClient: client,
+    __integrationTestCleanup: cleanup,
+  };
 });
 
 const { db: testDb } = await import("../../../src/db/database.ts");
@@ -35,7 +47,8 @@ function romeDate(daysFromToday: number): string {
     month: "2-digit",
     day: "2-digit",
   }).formatToParts(date);
-  const part = (type: string) => parts.find((item) => item.type === type)!.value;
+  const part = (type: string) =>
+    parts.find((item) => item.type === type)!.value;
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
@@ -48,10 +61,38 @@ const pastDate = romeDate(-5);
 async function resetFixture() {
   await resetTestDatabase(client);
   await testDb.insert(usersTable).values([
-    { id: 1, email: "hiker1@example.test", passwordHash, name: "Alice", surname: "Hiker", type: "HIKER" },
-    { id: 2, email: "hiker2@example.test", passwordHash, name: "Bob", surname: "Hiker", type: "HIKER" },
-    { id: 3, email: "staff@example.test", passwordHash, name: "Charlie", surname: "Staff", type: "EMPLOYEE" },
-    { id: 4, email: "manager@example.test", passwordHash, name: "Diane", surname: "Manager", type: "MANAGER" },
+    {
+      id: 1,
+      email: "hiker1@example.test",
+      passwordHash,
+      name: "Alice",
+      surname: "Hiker",
+      type: "HIKER",
+    },
+    {
+      id: 2,
+      email: "hiker2@example.test",
+      passwordHash,
+      name: "Bob",
+      surname: "Hiker",
+      type: "HIKER",
+    },
+    {
+      id: 3,
+      email: "staff@example.test",
+      passwordHash,
+      name: "Charlie",
+      surname: "Staff",
+      type: "EMPLOYEE",
+    },
+    {
+      id: 4,
+      email: "manager@example.test",
+      passwordHash,
+      name: "Diane",
+      surname: "Manager",
+      type: "MANAGER",
+    },
   ]);
   await testDb.insert(tablesTable).values([
     { id: 1, code: "T1", seats: 2 },
@@ -87,7 +128,9 @@ async function loginAs(userId: number): Promise<string> {
   });
   expect(res.statusCode).toBe(200);
   const cookieHeader = res.headers["set-cookie"];
-  return Array.isArray(cookieHeader) ? cookieHeader[0] : (cookieHeader as string);
+  return Array.isArray(cookieHeader)
+    ? cookieHeader[0]
+    : (cookieHeader as string);
 }
 
 async function deleteBooking(bookingId: number | string, cookie?: string) {
@@ -175,7 +218,10 @@ describe("MH-106: DELETE /api/v1/bookings/:bookingId — Cancel a booking API", 
       expect(res.json().error).toMatch(/booking not found/i);
 
       // Verify the booking remains untouched
-      const [row] = await testDb.select().from(reservationsTable).where(eq(reservationsTable.id, 10));
+      const [row] = await testDb
+        .select()
+        .from(reservationsTable)
+        .where(eq(reservationsTable.id, 10));
       expect(row.status).toBe("PLACED");
     });
   });
@@ -251,7 +297,10 @@ describe("MH-106: DELETE /api/v1/bookings/:bookingId — Cancel a booking API", 
       expect(res.statusCode).toBe(200);
       expect(res.json()).toEqual({ id: 30, status: "CANCELED" });
 
-      const [row] = await testDb.select().from(reservationsTable).where(eq(reservationsTable.id, 30));
+      const [row] = await testDb
+        .select()
+        .from(reservationsTable)
+        .where(eq(reservationsTable.id, 30));
       expect(row.status).toBe("CANCELED");
     });
 
@@ -259,8 +308,24 @@ describe("MH-106: DELETE /api/v1/bookings/:bookingId — Cancel a booking API", 
       const createdAt = "2026-11-15 10:30:00";
       // Group of 8 split across table 2 (4 seats) and table 3 (4 seats)
       await testDb.insert(reservationsTable).values([
-        { id: 40, userId: 1, slotId: 1, tableId: 2, partySize: 4, status: "PLACED", createdAt },
-        { id: 41, userId: 1, slotId: 1, tableId: 3, partySize: 4, status: "PLACED", createdAt },
+        {
+          id: 40,
+          userId: 1,
+          slotId: 1,
+          tableId: 2,
+          partySize: 4,
+          status: "PLACED",
+          createdAt,
+        },
+        {
+          id: 41,
+          userId: 1,
+          slotId: 1,
+          tableId: 3,
+          partySize: 4,
+          status: "PLACED",
+          createdAt,
+        },
       ]);
 
       const cookie = await loginAs(1);
@@ -270,8 +335,12 @@ describe("MH-106: DELETE /api/v1/bookings/:bookingId — Cancel a booking API", 
       expect(res.json()).toEqual({ id: 40, status: "CANCELED" });
 
       // Both reservation rows must now be CANCELED
-      const rows = await testDb.select().from(reservationsTable)
-        .where(and(eq(reservationsTable.userId, 1), eq(reservationsTable.slotId, 1)));
+      const rows = await testDb
+        .select()
+        .from(reservationsTable)
+        .where(
+          and(eq(reservationsTable.userId, 1), eq(reservationsTable.slotId, 1)),
+        );
       expect(rows).toHaveLength(2);
       expect(rows[0].status).toBe("CANCELED");
       expect(rows[1].status).toBe("CANCELED");
