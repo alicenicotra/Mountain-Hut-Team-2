@@ -64,7 +64,7 @@ describe("MyHikesPage (MH-140)", () => {
     const inProgress = within(await screen.findByRole("region", { name: "Hikes in progress" }));
     expect(inProgress.getAllByRole("listitem")).toHaveLength(1);
     expect(inProgress.getByText("Route 2")).toBeInTheDocument();
-    expect(inProgress.getByText("In progress")).toBeInTheDocument();
+    expect(within(inProgress.getByRole("listitem")).getByText("In progress")).toBeInTheDocument();
     expect(inProgress.getByText(/^Expected back/)).toBeInTheDocument();
 
     const upcoming = within(screen.getByRole("region", { name: "Upcoming hikes" }));
