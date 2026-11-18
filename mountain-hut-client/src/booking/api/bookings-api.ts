@@ -5,6 +5,7 @@ import type {
   ChangeBookingRequest,
   ChangeBookingResult,
   CreateBookingRequest,
+  CreateStaffBookingRequest,
   MyBooking,
 } from "../types/booking.ts";
 
@@ -28,6 +29,14 @@ export function createBooking(slotId: number, partySize: number, extras: Booking
   }
 
   return apiFetch<BookingResult>("/bookings", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+// POST /api/v1/staff/bookings: staff book for an existing hiker (MH-07)
+export function createStaffBooking(body: CreateStaffBookingRequest) {
+  return apiFetch<BookingResult>("/staff/bookings", {
     method: "POST",
     body: JSON.stringify(body),
   });
