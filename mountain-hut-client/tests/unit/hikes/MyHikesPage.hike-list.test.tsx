@@ -20,8 +20,8 @@ function hike(id: number, startsIn: number, lasts: number, extra: Partial<Hike> 
     userId: 1,
     departureAt: new Date(departure).toISOString(),
     expectedReturnAt: new Date(departure + lasts).toISOString(),
-    routeDescription: `Route ${id}`,
     destination: `Destination ${id}`,
+    routeDescription: `Route ${id}`,
     intermediatePoints: [],
     emergencyContactPhone: null,
     createdAt: "2030-06-01 10:00:00",
@@ -50,9 +50,10 @@ describe("MyHikesPage (MH-140)", () => {
     expect(screen.getByLabelText("Loading hikes")).toBeInTheDocument();
   });
 
-  it("splits the hikes into upcoming and past, the soonest first", async () => {
+  it("splits the hikes into in progress, upcoming and past", async () => {
     // As the API returns them: the latest departure first
     vi.mocked(getMyHikes).mockResolvedValue([
+      hike(4, 3 * DAY, 5 * HOUR),
       hike(3, 2 * DAY, 5 * HOUR),
       hike(2, -1 * HOUR, 4 * HOUR),
       hike(1, -3 * DAY, 6 * HOUR),
@@ -60,19 +61,40 @@ describe("MyHikesPage (MH-140)", () => {
 
     renderPage();
 
-    const upcoming = within(await screen.findByRole("region", { name: "Upcoming hikes" }));
-    const upcomingItems = upcoming.getAllByRole("listitem");
-    expect(upcomingItems).toHaveLength(2);
-    expect(within(upcomingItems[0]).getByText("Route 2")).toBeInTheDocument();
-    expect(within(upcomingItems[0]).getByText("In progress")).toBeInTheDocument();
-    expect(within(upcomingItems[1]).getByText("Route 3")).toBeInTheDocument();
-    expect(within(upcomingItems[1]).getByText("Upcoming")).toBeInTheDocument();
+    const inProgress = within(await screen.findByRole("region", { name: "Hikes in progress" }));
+    expect(inProgress.getAllByRole("listitem")).toHaveLength(1);
+    expect(inProgress.getByText("Route 2")).toBeInTheDocument();
+    expect(inProgress.getByText("In progress")).toBeInTheDocument();
+    expect(inProgress.getByText(/^Expected back/)).toBeInTheDocument();
+
+    const upcoming = within(screen.getByRole("region", { name: "Upcoming hikes" }));
+    const upcomingRoutes = upcoming
+      .getAllByRole("listitem")
+      .map((item) => within(item).getByText(/^Route \d$/).textContent);
+    expect(upcomingRoutes).toEqual(["Route 3", "Route 4"]);
 
     const past = within(screen.getByRole("region", { name: "Past hikes" }));
-    const pastItems = past.getAllByRole("listitem");
-    expect(pastItems).toHaveLength(1);
-    expect(within(pastItems[0]).getByText("Route 1")).toBeInTheDocument();
-    expect(within(pastItems[0]).getByText("Past")).toBeInTheDocument();
+    expect(past.getAllByRole("listitem")).toHaveLength(1);
+    expect(past.getByText("Route 1")).toBeInTheDocument();
+    expect(past.queryByText(/^Expected back/)).not.toBeInTheDocument();
+
+    const order = screen.getAllByRole("region").map((region) => region.getAttribute("aria-label"));
+    expect(order).toEqual(["Hikes in progress", "Upcoming hikes", "Past hikes"]);
+  });
+
+  it("puts the hike that is due back first among those in progress", async () => {
+    vi.mocked(getMyHikes).mockResolvedValue([
+      hike(2, -1 * HOUR, 8 * HOUR),
+      hike(1, -2 * HOUR, 4 * HOUR),
+    ]);
+
+    renderPage();
+
+    const inProgress = within(await screen.findByRole("region", { name: "Hikes in progress" }));
+    const routes = inProgress
+      .getAllByRole("listitem")
+      .map((item) => within(item).getByText(/^Route \d$/).textContent);
+    expect(routes).toEqual(["Route 1", "Route 2"]);
   });
 
   it("shows how long the hike lasts and the emergency contact", async () => {
@@ -86,12 +108,24 @@ describe("MyHikesPage (MH-140)", () => {
     expect(screen.getByText("Emergency contact: +39 333 123 4567")).toBeInTheDocument();
   });
 
-  it("hides a section without hikes", async () => {
+  it("shows the destination and the stops of a hike", async () => {
+    vi.mocked(getMyHikes).mockResolvedValue([
+      hike(1, 2 * DAY, 5 * HOUR, { destination: "Lake", intermediatePoints: ["Pass", "Ridge"] }),
+    ]);
+
+    renderPage();
+
+    expect(await screen.findByText("Lake")).toBeInTheDocument();
+    expect(screen.getByText("Via Pass → Ridge")).toBeInTheDocument();
+  });
+
+  it("hides the sections without hikes", async () => {
     vi.mocked(getMyHikes).mockResolvedValue([hike(1, 2 * DAY, 5 * HOUR)]);
 
     renderPage();
 
     expect(await screen.findByRole("region", { name: "Upcoming hikes" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Hikes in progress" })).not.toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Past hikes" })).not.toBeInTheDocument();
   });
 
@@ -113,5 +147,6 @@ describe("MyHikesPage (MH-140)", () => {
       "Could not load your hikes: API error 500",
     );
     expect(screen.queryByText("You haven't registered any hikes yet.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("region")).not.toBeInTheDocument();
   });
 });

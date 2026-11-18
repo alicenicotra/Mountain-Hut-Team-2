@@ -6,6 +6,7 @@ import type { Hike } from "../types/hike.ts";
 import {
   formatDuration,
   formatHikeRange,
+  formatHikeTime,
   hikePhase,
   type HikePhase,
 } from "../utils/hike-time.ts";
@@ -21,7 +22,8 @@ type ListedHike = Hike & { phase: HikePhase };
 // The hikes of the last load, already split. The phase is worked out when
 // they arrive, so that rendering never needs the current time.
 interface LoadedHikes {
-  upcoming: ListedHike[]; // not finished yet, the soonest first
+  ongoing: ListedHike[]; // the earliest return first
+  upcoming: ListedHike[]; // the soonest departure first
   past: ListedHike[]; // the most recent first
   error: string | null;
 }
@@ -29,12 +31,14 @@ interface LoadedHikes {
 function HikeCard({ hike }: { hike: ListedHike }) {
   const durationMs = Date.parse(hike.expectedReturnAt) - Date.parse(hike.departureAt);
 
+  const cardClass = {
+    ongoing: "border-amber-300 bg-amber-50/60 shadow-xs",
+    upcoming: "border-stone-200 bg-white shadow-xs",
+    past: "border-stone-200 bg-stone-50/60",
+  }[hike.phase];
+
   return (
-    <li
-      className={`rounded-lg border px-4 py-3 ${
-        hike.phase === "past" ? "border-stone-200 bg-stone-50/60" : "border-stone-200 bg-white shadow-xs"
-      }`}
-    >
+    <li className={`rounded-lg border px-4 py-3 ${cardClass}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-semibold text-stone-900">{hike.destination}</p>
@@ -49,6 +53,12 @@ function HikeCard({ hike }: { hike: ListedHike }) {
           {PHASES[hike.phase].label}
         </span>
       </div>
+
+      {hike.phase === "ongoing" && (
+        <p className="mt-2 text-sm font-semibold text-amber-800">
+          Expected back {formatHikeTime(hike.expectedReturnAt)}
+        </p>
+      )}
 
       {hike.intermediatePoints.length > 0 && (
         <p className="mt-2 text-sm text-stone-700">Via {hike.intermediatePoints.join(" → ")}</p>
@@ -65,11 +75,19 @@ function HikeCard({ hike }: { hike: ListedHike }) {
   );
 }
 
-function SectionHeading({ children, count }: { children: string; count: number }) {
+function HikeSection({ title, label, hikes }: { title: string; label: string; hikes: ListedHike[] }) {
+  if (hikes.length === 0) return null;
   return (
-    <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-green-700">
-      {children} <span className="text-stone-400">({count})</span>
-    </h2>
+    <section aria-label={label}>
+      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-green-700">
+        {title} <span className="text-stone-400">({hikes.length})</span>
+      </h2>
+      <ul className="space-y-2">
+        {hikes.map((hike) => (
+          <HikeCard key={hike.id} hike={hike} />
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -85,7 +103,10 @@ export default function MyHikesPage() {
         // The API returns the latest departure first
         const listed = list.map((hike) => ({ ...hike, phase: hikePhase(hike, now) }));
         setHikes({
-          upcoming: listed.filter((hike) => hike.phase !== "past").reverse(),
+          ongoing: listed
+            .filter((hike) => hike.phase === "ongoing")
+            .sort((a, b) => Date.parse(a.expectedReturnAt) - Date.parse(b.expectedReturnAt)),
+          upcoming: listed.filter((hike) => hike.phase === "upcoming").reverse(),
           past: listed.filter((hike) => hike.phase === "past"),
           error: null,
         });
@@ -93,6 +114,7 @@ export default function MyHikesPage() {
       .catch((err) => {
         if (ignore) return;
         setHikes({
+          ongoing: [],
           upcoming: [],
           past: [],
           error: err instanceof Error ? err.message : "Could not load your hikes",
@@ -103,7 +125,10 @@ export default function MyHikesPage() {
     };
   }, []);
 
-  const isEmpty = hikes !== null && !hikes.error && hikes.upcoming.length + hikes.past.length === 0;
+  const isEmpty =
+    hikes !== null &&
+    !hikes.error &&
+    hikes.ongoing.length + hikes.upcoming.length + hikes.past.length === 0;
 
   return (
     <AuthShell
@@ -145,26 +170,12 @@ export default function MyHikesPage() {
           </p>
         )}
 
-        {hikes && hikes.upcoming.length > 0 && (
-          <section aria-label="Upcoming hikes">
-            <SectionHeading count={hikes.upcoming.length}>Upcoming</SectionHeading>
-            <ul className="space-y-2">
-              {hikes.upcoming.map((hike) => (
-                <HikeCard key={hike.id} hike={hike} />
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {hikes && hikes.past.length > 0 && (
-          <section aria-label="Past hikes">
-            <SectionHeading count={hikes.past.length}>Past</SectionHeading>
-            <ul className="space-y-2">
-              {hikes.past.map((hike) => (
-                <HikeCard key={hike.id} hike={hike} />
-              ))}
-            </ul>
-          </section>
+        {hikes && !hikes.error && (
+          <>
+            <HikeSection title="In progress" label="Hikes in progress" hikes={hikes.ongoing} />
+            <HikeSection title="Upcoming" label="Upcoming hikes" hikes={hikes.upcoming} />
+            <HikeSection title="Past" label="Past hikes" hikes={hikes.past} />
+          </>
         )}
       </div>
     </AuthShell>

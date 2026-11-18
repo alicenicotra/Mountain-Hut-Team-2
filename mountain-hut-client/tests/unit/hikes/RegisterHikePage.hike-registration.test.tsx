@@ -222,6 +222,16 @@ describe("RegisterHikePage (MH-140)", () => {
       expect(phoneField()).toHaveValue("");
     });
 
+    it("hides the error as soon as the hiker changes something", async () => {
+      const { user } = renderPage();
+      await user.click(registerButton());
+      expect(screen.getByRole("alert")).toHaveTextContent("Enter your destination.");
+
+      await user.type(destinationField(), "L");
+
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
     it("leaves out the stops and the contact when they are empty", async () => {
       vi.mocked(registerHike).mockResolvedValue(savedHike());
       const { user } = renderPage();

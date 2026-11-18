@@ -74,6 +74,7 @@ export default function RegisterHikePage() {
   // A suggested route fills in the destination, its stops, the description
   // and, once the departure is known, the expected return. All stay editable.
   function handleRouteSelect(picked: SuggestedRoute | null) {
+    setFormError(null);
     if (picked === null) {
       setRouteId(CUSTOM_ROUTE_ID);
       // Keep what the hiker typed, but drop what a suggested route filled in
@@ -94,6 +95,11 @@ export default function RegisterHikePage() {
   function handleDepartureChange(value: string) {
     setDeparture(value);
     if (suggested && value) setExpectedReturn(addHours(value, suggested.hours));
+  }
+
+  function handlePointsChange(next: string[]) {
+    setPoints(next);
+    setFormError(null);
   }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -144,7 +150,7 @@ export default function RegisterHikePage() {
       title="Register a hike"
       subtitle="Tell the hut where you are going and when you plan to be back."
     >
-      <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      <form onSubmit={handleSubmit} onChange={() => setFormError(null)} noValidate className="space-y-4">
         {registered && (
           <div
             role="status"
@@ -209,7 +215,7 @@ export default function RegisterHikePage() {
               </div>
             </div>
 
-            <StopsField points={points} onChange={setPoints} inputClass={inputClass} />
+            <StopsField points={points} onChange={handlePointsChange} inputClass={inputClass} />
           </div>
 
           {/* Right: when, and who to call */}
@@ -246,7 +252,10 @@ export default function RegisterHikePage() {
                       type="button"
                       aria-pressed={selected}
                       disabled={!Number.isFinite(departureMs)}
-                      onClick={() => setExpectedReturn(addHours(departure, hours))}
+                      onClick={() => {
+                        setExpectedReturn(addHours(departure, hours));
+                        setFormError(null);
+                      }}
                       className={`rounded-full px-4 py-1.5 text-sm font-medium transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 ${
                         selected
                           ? "bg-green-600 text-white shadow-sm"
