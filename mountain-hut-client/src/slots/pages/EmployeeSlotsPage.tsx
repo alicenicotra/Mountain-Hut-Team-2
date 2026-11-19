@@ -3,6 +3,7 @@ import { getSlots, getTables } from "../api/slots-api.ts";
 import AddTableForm from "../components/AddTableForm.tsx";
 import CreateSlotForm from "../components/CreateSlotForm.tsx";
 import SlotList from "../components/SlotList.tsx";
+import CopyWeekForm from "../components/CopyWeekForm.tsx";
 import DayBar from "../../shared/components/DayBar.tsx";
 import { todayString } from "../../shared/utils/date.ts";
 import type { Table, TimeSlot } from "../types/slot.ts";
@@ -24,6 +25,8 @@ export default function EmployeeSlotsPage() {
   // Remembers which date the slots belong to: while it differs from `date`
   // the slots of the newly chosen day are still loading
   const [slotsResult, setSlotsResult] = useState<SlotsResult | null>(null);
+  const [reloadSlots, setReloadSlots] = useState(0);
+  const [copyNotice, setCopyNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -55,7 +58,7 @@ export default function EmployeeSlotsPage() {
     return () => {
       ignore = true;
     };
-  }, [date]);
+  }, [date, reloadSlots]);
 
   const loadingSlots = slotsResult?.date !== date;
 
@@ -65,6 +68,13 @@ export default function EmployeeSlotsPage() {
         ? { ...current, slots: [...current.slots, slot].sort(byStartTime) }
         : current,
     );
+  }
+
+  function handleWeekCopied(targetWeekStart: string, copiedSlots: number, weeks: number) {
+    setCopyNotice(`Copied ${copiedSlots} slots into ${weeks} ${weeks === 1 ? "week" : "weeks"}`);
+    setSlotsResult(null);
+    setDate(targetWeekStart);
+    setReloadSlots((previous) => previous + 1);
   }
 
   return (
@@ -92,6 +102,12 @@ export default function EmployeeSlotsPage() {
         </section>
 
         <div className="space-y-6">
+          <section className={`${card} space-y-4`}>
+            <h2 className="text-lg font-semibold">Copy weekly schedule</h2>
+            <CopyWeekForm key={date} selectedDate={date} onCopied={handleWeekCopied} />
+            {copyNotice && <p role="status" className="text-sm text-green-800">{copyNotice}</p>}
+          </section>
+
           <section className={`${card} space-y-4`}>
             <h2 className="text-lg font-semibold">New slot</h2>
             {tablesError ? (
