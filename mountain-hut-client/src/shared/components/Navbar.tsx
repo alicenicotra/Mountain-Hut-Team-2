@@ -6,7 +6,8 @@ type Role = string | null; // null = guest
 
 const STAFF = ["EMPLOYEE", "MANAGER"];
 const MAIL_SERVICE_URL =
-  import.meta.env.VITE_MAIL_SERVICE_URL || "http://localhost:8025";
+  import.meta.env.VITE_MAIL_SERVICE_URL ||
+  "https://accounts.google.com/AccountChooser?Email=mountain.hut.team2%40gmail.com&continue=https%3A%2F%2Fmail.google.com%2Fmail%2F";
 
 const navItems: { path: string; label: string; end?: boolean; show: (role: Role) => boolean }[] = [
   { path: "/", label: "Home", end: true, show: () => true },
