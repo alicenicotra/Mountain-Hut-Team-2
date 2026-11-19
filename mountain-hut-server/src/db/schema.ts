@@ -20,6 +20,15 @@ export const MENU_TYPES = [
 ] as const;
 export type MenuType = (typeof MENU_TYPES)[number];
 
+export const DISH_TYPE = [
+  "APPETIZER",
+  "MAIN",
+  "SIDE",
+  "DESSERT",
+  "BEVERAGE",
+] as const;
+export type DishType = (typeof DISH_TYPE)[number];
+
 export const usersTable = sqliteTable("users", {
   id: int().primaryKey({ autoIncrement: true }),
   email: text().notNull().unique(),
@@ -136,6 +145,7 @@ export const dishesTable = sqliteTable("dishes", {
   id: int().primaryKey({ autoIncrement: true }),
   name: text().notNull().unique(),
   description: text(),
+  course: text().notNull().$type<DishType>(),
 });
 
 export const allergensTable = sqliteTable("allergens", {
@@ -143,8 +153,8 @@ export const allergensTable = sqliteTable("allergens", {
   name: text().notNull().unique(),
 });
 
-export const timeSlotOffersMenuTable = sqliteTable(
-  "timeslot_offers_menu",
+export const timeSlotMenuTable = sqliteTable(
+  "timeslot_menu",
   {
     slotId: int("slot_id")
       .notNull()
@@ -160,8 +170,8 @@ export const timeSlotOffersMenuTable = sqliteTable(
   (t) => [primaryKey({ columns: [t.slotId, t.menuId] })],
 );
 
-export const menuMadeOfDishesTable = sqliteTable(
-  "menu_madeof_dishes",
+export const menuDishesTable = sqliteTable(
+  "menu_dishes",
   {
     menuId: int("menu_id")
       .notNull()
@@ -177,8 +187,8 @@ export const menuMadeOfDishesTable = sqliteTable(
   (t) => [primaryKey({ columns: [t.menuId, t.dishId] })],
 );
 
-export const dishContainsAllergenTable = sqliteTable(
-  "dish_contains_allergen",
+export const dishAllergenTable = sqliteTable(
+  "dish_allergen",
   {
     dishId: int("dish_id")
       .notNull()
