@@ -7,6 +7,12 @@ import { z } from "zod";
 
 import { UserRepository } from "../users/user-repository.ts";
 import { userResponseSchema } from "../users/user-schema.ts";
+import { env } from "../config.ts";
+import { emailSender, type EmailSender } from "../notifications/sender.ts";
+import {
+  renderPasswordResetEmail,
+  renderPasswordChangedConfirmationEmail,
+} from "../notifications/utils.ts";
 import {
   registerSchema,
   loginSchema,
@@ -14,6 +20,10 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
 } from "./auth-schema.ts";
+
+export interface AuthRoutesOptions {
+  emailSender?: EmailSender;
+}
 
 export async function requireAuthenticatedUser(
   request: FastifyRequest,
@@ -26,8 +36,12 @@ export async function requireAuthenticatedUser(
   }
 }
 
-export const authRoutes: FastifyPluginAsync = async (server) => {
+export const authRoutes: FastifyPluginAsync<AuthRoutesOptions> = async (
+  server,
+  options = {},
+) => {
   const typed = server.withTypeProvider<ZodTypeProvider>();
+  const mailSender = options.emailSender ?? emailSender;
 
   typed.post(
     "/register",
@@ -155,9 +169,23 @@ export const authRoutes: FastifyPluginAsync = async (server) => {
           { expiresIn: "15m" },
         );
 
-        // TODO for Giacomo: send email to user
-        const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+        const frontendUrl = process.env.FRONTEND_URL || env.APP_URL;
+        const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
         request.log.info({ resetLink }, "Password reset link generated");
+
+        if (user.email) {
+          try {
+            const { text, html } = renderPasswordResetEmail(resetLink, user.name);
+            await mailSender.send({
+              to: user.email,
+              subject: "Mountain Hut — Password Reset",
+              text,
+              html,
+            });
+          } catch (err) {
+            request.log.error(err, "Failed to send password reset email");
+          }
+        }
       }
 
       return reply.code(StatusCodes.OK).send({
@@ -202,6 +230,19 @@ export const authRoutes: FastifyPluginAsync = async (server) => {
             .send({ message: "Invalid token" });
         }
 
+        if (user.passwordHash) {
+          const isSamePassword = await argon2.verify(
+            user.passwordHash,
+            newPassword,
+          );
+          if (isSamePassword) {
+            return reply.code(StatusCodes.BAD_REQUEST).send({
+              message:
+                "For safety reasons, you cannot change the password to your old one.",
+            });
+          }
+        }
+
         const newHash = await argon2.hash(newPassword);
         user.passwordHash = newHash;
 
@@ -209,10 +250,30 @@ export const authRoutes: FastifyPluginAsync = async (server) => {
         if (user.type === "TEMPORARY") {
           user.type = "HIKER";
         }
-        const _ = await UserRepository.updateUser(payload.sub, user);
+        await UserRepository.updateUser(payload.sub, user);
+
+        if (user.email) {
+          try {
+            const { text, html } = renderPasswordChangedConfirmationEmail(
+              user.name,
+            );
+            await mailSender.send({
+              to: user.email,
+              subject: "Mountain Hut — Password Changed",
+              text,
+              html,
+            });
+          } catch (err) {
+            request.log.error(
+              err,
+              "Failed to send password changed confirmation email",
+            );
+          }
+        }
 
         return reply.code(StatusCodes.NO_CONTENT).send(null);
       } catch {
+        if (reply.sent) return;
         return reply
           .code(StatusCodes.BAD_REQUEST)
           .send({ message: "Invalid or expired reset token" });
