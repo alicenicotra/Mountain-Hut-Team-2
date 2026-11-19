@@ -20,7 +20,6 @@ import { changeBookingRoutes } from "./booking/routes/change-booking-routes.ts";
 import { cancelBookingRoutes } from "./booking/routes/cancel-booking-routes.ts";
 import { allergenRoutes } from "./allergens/allergen-routes.ts";
 import { authRoutes } from "./auth/auth-routes.ts";
-import { passwordResetRoutes } from "./auth/password-reset-routes.ts";
 import { hikeRoutes } from "./hikes/hike-routes.ts";
 import { userResponseSchema } from "./users/user-schema.ts";
 
@@ -76,15 +75,8 @@ export function buildApp(opts: FastifyServerOptions = {}) {
   server.register(cancelBookingRoutes, { prefix: BASE_URL });
   server.register(hikeRoutes, { prefix: BASE_URL });
   server.register(allergenRoutes, { prefix: BASE_URL });
-  server.register(authRoutes, {
-    prefix: `${BASE_URL}/auth`,
-  });
-  server.register(passwordResetRoutes, {
-    prefix: `${BASE_URL}/auth`,
-  });
-  server.register(userRoutes, {
-    prefix: `${BASE_URL}/users`,
-  });
+  server.register(authRoutes, { prefix: `${BASE_URL}/auth` });
+  server.register(userRoutes, { prefix: `${BASE_URL}/users` });
 
   return server;
 }

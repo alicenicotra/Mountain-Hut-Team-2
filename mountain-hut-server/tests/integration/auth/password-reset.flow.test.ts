@@ -10,7 +10,10 @@ import {
 import type { Client } from "@libsql/client";
 import argon2 from "argon2";
 import { eq } from "drizzle-orm";
-import { usersTable, passwordResetTokensTable } from "../../../src/db/schema.ts";
+import {
+  usersTable,
+  passwordResetTokensTable,
+} from "../../../src/db/schema.ts";
 import { resetTestDatabase } from "../../test-database.ts";
 import { emailSender } from "../../../src/notifications/sender.ts";
 
@@ -105,7 +108,9 @@ describe("Password Reset Integration Flow", () => {
     const confirmationCall = vi.mocked(emailSender.send).mock.calls[1][0];
     expect(confirmationCall.to).toBe("hiker@test.com");
     expect(confirmationCall.subject).toContain("Password changed successfully");
-    expect(confirmationCall.text).toContain("Your password has been changed successfully.");
+    expect(confirmationCall.text).toContain(
+      "Your password has been changed successfully.",
+    );
 
     // Token should now be consumed/deleted
     const remainingTokens = await testDb
@@ -120,13 +125,13 @@ describe("Password Reset Integration Flow", () => {
       .from(usersTable)
       .where(eq(usersTable.id, user.id));
     const valid = await argon2.verify(
-      updatedUser.passwordHash,
+      updatedUser.passwordHash ?? "",
       "brandnewpassword456",
     );
     expect(valid).toBe(true);
 
     const oldValid = await argon2.verify(
-      updatedUser.passwordHash,
+      updatedUser.passwordHash ?? "",
       "oldpassword123",
     );
     expect(oldValid).toBe(false);
@@ -181,7 +186,9 @@ describe("Password Reset Integration Flow", () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect(JSON.parse(res.body).message).toBe("Invalid or expired reset token.");
+    expect(JSON.parse(res.body).message).toBe(
+      "Invalid or expired reset token.",
+    );
   });
 
   it("returns 200 on forgot password even if email does not exist (privacy)", async () => {
