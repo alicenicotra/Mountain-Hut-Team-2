@@ -1,12 +1,30 @@
-import type { FastifyPluginAsync } from "fastify";
+import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
-import { StatusCodes } from "http-status-codes";
 import argon2 from "argon2";
+import { StatusCodes } from "http-status-codes";
+import { randomInt } from "node:crypto";
 import { z } from "zod";
 
 import { UserRepository } from "../users/user-repository.ts";
 import { userResponseSchema } from "../users/user-schema.ts";
-import { registerSchema, loginSchema } from "./auth-schema.ts";
+import {
+  registerSchema,
+  loginSchema,
+  changePasswordSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+} from "./auth-schema.ts";
+
+export async function requireAuthenticatedUser(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  if (!request.user) {
+    return reply
+      .code(StatusCodes.UNAUTHORIZED)
+      .send({ message: "Not authenticated" });
+  }
+}
 
 export const authRoutes: FastifyPluginAsync = async (server) => {
   const typed = server.withTypeProvider<ZodTypeProvider>();
@@ -23,27 +41,37 @@ export const authRoutes: FastifyPluginAsync = async (server) => {
       },
     },
     async (request, reply) => {
-      const email = request.body.email.toLowerCase().trim();
-      const existingUser = await UserRepository.getUserByEmail(email);
-      if (existingUser) {
-        return reply
-          .code(StatusCodes.CONFLICT)
-          .send({ message: "An account with this email already exists" });
+      const body = request.body;
+
+      if (body.email) {
+        const existingUser = await UserRepository.getUserByEmail(body.email);
+        if (existingUser) {
+          return reply
+            .code(StatusCodes.CONFLICT)
+            .send({ message: "An account with this email already exists" });
+        }
       }
 
-      const passwordHash = await argon2.hash(request.body.password);
-      const user = await UserRepository.createUser({
-        email,
+      let passwordHash: string | null = null;
+      if (body.type === "TEMPORARY") {
+        const rawPassword = `${body.name}${body.surname ?? ""}${randomInt(100, 1000)}`;
+        passwordHash = await argon2.hash(rawPassword);
+      } else if (body.type !== "THROWAWAY") {
+        passwordHash = await argon2.hash(body.password);
+      }
+
+      const newUser = await UserRepository.saveUser({
+        email: body.email,
         passwordHash,
-        name: request.body.name.trim(),
-        surname: request.body.surname.trim(),
-        phoneNumber: request.body.phoneNumber?.trim() || undefined,
-        type: "HIKER",
+        name: body.name,
+        surname: body.surname,
+        phoneNumber: body.phoneNumber,
+        type: body.type,
       });
 
       return reply
         .code(StatusCodes.CREATED)
-        .send(userResponseSchema.parse(user));
+        .send(userResponseSchema.parse(newUser));
     },
   );
 
@@ -59,9 +87,8 @@ export const authRoutes: FastifyPluginAsync = async (server) => {
       },
     },
     async (request, reply) => {
-      const email = request.body.email.toLowerCase().trim();
-      const user = await UserRepository.getUserByEmail(email);
-      if (!user) {
+      const user = await UserRepository.getUserByEmail(request.body.email);
+      if (!user || !user.passwordHash) {
         return reply
           .code(StatusCodes.UNAUTHORIZED)
           .send({ message: "Invalid email or password" });
@@ -92,15 +119,104 @@ export const authRoutes: FastifyPluginAsync = async (server) => {
       .send({ message: "Logged out successfully" });
   });
 
-  typed.get("/me", async (request, reply) => {
-    if (!request.user) {
+  typed.get(
+    "/me",
+    { preHandler: requireAuthenticatedUser },
+    async (request, reply) => {
       return reply
-        .code(StatusCodes.UNAUTHORIZED)
-        .send({ message: "Not authenticated" });
-    }
+        .code(StatusCodes.OK)
+        .send(userResponseSchema.parse(request.user));
+    },
+  );
 
-    return reply
-      .code(StatusCodes.OK)
-      .send(userResponseSchema.parse(request.user));
-  });
+  typed.post(
+    "/forgot-password",
+    {
+      schema: {
+        summary: "Request password reset",
+        description:
+          "Initiates the password recovery process by sending a time-limited reset link " +
+          "to the specified email address, if an associated account exists.",
+        tags: ["Auth"],
+        body: forgotPasswordSchema,
+        response: {
+          [StatusCodes.OK]: z.object({ message: z.string() }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { email } = request.body;
+      const user = await UserRepository.getUserByEmail(email);
+
+      if (user && user.type !== "THROWAWAY") {
+        // Generates a JWT token that's valid for 15 minutes
+        const resetToken = server.jwt.sign(
+          { sub: user.id, purpose: "password_reset" },
+          { expiresIn: "15m" },
+        );
+
+        // TODO for Giacomo: send email to user
+        const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+        request.log.info({ resetLink }, "Password reset link generated");
+      }
+
+      return reply.code(StatusCodes.OK).send({
+        message:
+          "If an account with that email exists, a reset link has been sent.",
+      });
+    },
+  );
+
+  typed.patch(
+    "/update-password",
+    {
+      schema: {
+        summary: "Updates a user's password (requires a valid token).",
+        tags: ["Auth"],
+        body: resetPasswordSchema,
+        response: {
+          [StatusCodes.NO_CONTENT]: z.null(),
+          [StatusCodes.BAD_REQUEST]: z.object({ message: z.string() }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { token, newPassword } = request.body;
+
+      try {
+        const payload = server.jwt.verify<{ sub: number; purpose?: string }>(
+          token,
+        );
+
+        if (payload.purpose !== "password_reset") {
+          return reply
+            .code(StatusCodes.BAD_REQUEST)
+            .send({ message: "Invalid token purpose" });
+        }
+
+        const userId = payload.sub;
+        const user = await UserRepository.getUserById(userId);
+        if (!user) {
+          return reply
+            .code(StatusCodes.BAD_REQUEST)
+            .send({ message: "Invalid token" });
+        }
+
+        const newHash = await argon2.hash(newPassword);
+        user.passwordHash = newHash;
+
+        // promote temporary user to hiker if password change was successful
+        if (user.type === "TEMPORARY") {
+          user.type = "HIKER";
+        }
+        const _ = await UserRepository.updateUser(payload.sub, user);
+
+        return reply.code(StatusCodes.NO_CONTENT).send(null);
+      } catch {
+        return reply
+          .code(StatusCodes.BAD_REQUEST)
+          .send({ message: "Invalid or expired reset token" });
+      }
+    },
+  );
 };

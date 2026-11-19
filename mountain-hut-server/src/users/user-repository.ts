@@ -2,12 +2,12 @@ import { db } from "../db/database.ts";
 import { eq, and, SQL, type InferSelectModel, sql } from "drizzle-orm";
 import { usersTable, type UserType } from "../db/schema.ts";
 
-export interface CreateUserData {
-  email: string;
-  passwordHash: string;
+export interface UserData {
+  email: string | null;
+  passwordHash: string | null;
   name: string;
-  surname: string;
-  phoneNumber?: string;
+  surname: string | null;
+  phoneNumber: string | null;
   type: UserType;
 }
 
@@ -66,7 +66,7 @@ export class UserRepository {
     return user ?? null;
   }
 
-  static async createUser(data: CreateUserData): Promise<User> {
+  static async saveUser(data: UserData): Promise<User> {
     const [newUser] = await db.insert(usersTable).values(data).returning();
     return newUser;
   }
@@ -79,5 +79,15 @@ export class UserRepository {
       .update(usersTable)
       .set({ passwordHash })
       .where(eq(usersTable.id, userId));
+  }
+
+  static async updateUser(userId: number, newData: UserData): Promise<boolean> {
+    const [updated] = await db
+      .update(usersTable)
+      .set(newData)
+      .where(eq(usersTable.id, userId))
+      .returning({ id: usersTable.id });
+
+    return Boolean(updated);
   }
 }
