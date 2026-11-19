@@ -113,6 +113,37 @@ export const reservationsTable = sqliteTable("reservations", {
   description: text(),
 });
 
+// Registered hikes are independent from dining reservations.
+// Timestamps are UTC ISO 8601 instants for unambiguous comparison.
+export const hikesTable = sqliteTable("hikes", {
+  id: int().primaryKey({ autoIncrement: true }),
+  userId: int("user_id")
+    .notNull()
+    .references(() => usersTable.id),
+  departureAt: text("departure_at").notNull(),
+  expectedReturnAt: text("expected_return_at").notNull(),
+  destination: text("destination").notNull(),
+  routeDescription: text("route_description").notNull(),
+  intermediatePoints: text("intermediate_points", { mode: "json" })
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'`),
+  emergencyContactPhone: text("emergency_contact_phone"),
+  createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
+});
+
+export const passwordResetTokensTable = sqliteTable("password_reset_tokens", {
+  id: int().primaryKey({ autoIncrement: true }),
+  userId: int("user_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  expiresAt: text("expires_at").notNull(),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`(CURRENT_TIMESTAMP)`),
+});
+
 // Which tables are available in a slot
 export const tableAvailabilityTable = sqliteTable(
   "table_availability",

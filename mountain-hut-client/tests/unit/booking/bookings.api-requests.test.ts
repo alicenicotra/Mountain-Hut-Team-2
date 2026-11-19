@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { changeBooking, createBooking, createStaffBooking, getMyBookings } from '../../../src/booking/api/bookings-api.ts'
+import {
+  changeBooking,
+  cancelBooking,
+  createBooking,
+  createStaffBooking,
+  getMyBookings,
+} from '../../../src/booking/api/bookings-api.ts'
 import { ApiError } from '../../../src/shared/api/client.ts'
 
 // Minimal fake of a fetch Response
@@ -155,5 +161,35 @@ describe('bookings API', () => {
     expect(error).toBeInstanceOf(ApiError)
     expect(error.status).toBe(409)
     expect(error.message).toContain('48 hours')
+  })
+
+  it('cancelBooking sends DELETE /api/v1/bookings/:id', async () => {
+    const result = { id: 12, status: 'CANCELED' }
+    const fetchMock = vi.fn().mockResolvedValue(fakeResponse(200, result))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const canceled = await cancelBooking(12)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/v1/bookings/12')
+    expect(options.method).toBe('DELETE')
+    expect(options.headers).toEqual({})
+    expect(canceled).toEqual(result)
+  })
+
+  it('cancelBooking throws ApiError when booking cannot be canceled', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        fakeResponse(409, { error: 'Time slot has already started' }),
+      ),
+    )
+
+    const error = await cancelBooking(12).catch((e) => e)
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error.status).toBe(409)
+    expect(error.message).toContain('Time slot has already started')
   })
 })

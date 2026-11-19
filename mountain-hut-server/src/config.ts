@@ -34,10 +34,8 @@ const envSchema = z.object({
     .transform((v) => v || undefined),
   MAIL_FROM_NAME: z.string().default("Mountain Hut"),
   MAIL_FROM_ADDRESS: z.email().default("booking@mountain-hut.test"),
-  MAIL_REPLY_TO: z
-    .string()
-    .optional()
-    .transform((v) => v || undefined),
+  MAIL_REPLY_TO: z.string().optional().transform((v) => v || undefined),
+  APP_URL: z.url().default("http://localhost:5173"),
 });
 
 const _env = envSchema.safeParse(process.env);

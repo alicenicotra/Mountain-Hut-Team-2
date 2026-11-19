@@ -15,10 +15,11 @@ export type User = InferSelectModel<typeof usersTable>;
 
 export class UserRepository {
   static async getUserByEmail(email: string): Promise<User | null> {
+    const cleanEmail = email.trim().toLowerCase();
     const [user] = await db
       .select()
       .from(usersTable)
-      .where(eq(usersTable.email, email))
+      .where(eq(sql`LOWER(${usersTable.email})`, cleanEmail))
       .limit(1);
     return user ?? null;
   }
@@ -68,6 +69,16 @@ export class UserRepository {
   static async saveUser(data: UserData): Promise<User> {
     const [newUser] = await db.insert(usersTable).values(data).returning();
     return newUser;
+  }
+
+  static async updatePasswordHash(
+    userId: number,
+    passwordHash: string,
+  ): Promise<void> {
+    await db
+      .update(usersTable)
+      .set({ passwordHash })
+      .where(eq(usersTable.id, userId));
   }
 
   static async updateUser(userId: number, newData: UserData): Promise<boolean> {
