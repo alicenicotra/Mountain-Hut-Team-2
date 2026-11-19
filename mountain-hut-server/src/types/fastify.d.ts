@@ -11,7 +11,7 @@ declare module "@fastify/secure-session" {
 
 declare module "@fastify/jwt" {
   interface FastifyJWT {
-    user: UserResponse;
+    user: UserResponse | null;
   }
 }
 

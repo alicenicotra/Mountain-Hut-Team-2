@@ -19,6 +19,7 @@ import { staffBookingRoutes } from "./booking/routes/staff-booking-routes.ts";
 import { changeBookingRoutes } from "./booking/routes/change-booking-routes.ts";
 import { allergenRoutes } from "./allergens/allergen-routes.ts";
 import { authRoutes } from "./auth/auth-routes.ts";
+import { userResponseSchema } from "./users/user-schema.ts";
 
 export function buildApp(opts: FastifyServerOptions = {}) {
   const server = Fastify({
@@ -44,12 +45,9 @@ export function buildApp(opts: FastifyServerOptions = {}) {
 
   server.addHook("preHandler", async (request) => {
     const userId = request.session.get("userId");
-
     if (userId) {
-      const user = await UserRepository.getUserById(userId);
-      request.user = user ?? null;
-    } else {
-      request.user = null;
+      const rawUser = await UserRepository.getUserById(userId);
+      request.user = rawUser ? userResponseSchema.parse(rawUser) : null;
     }
   });
 
