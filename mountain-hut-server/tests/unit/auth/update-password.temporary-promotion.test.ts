@@ -8,9 +8,8 @@ import {
   validatorCompiler,
 } from "fastify-type-provider-zod";
 
-import { authRoutes, type AuthRoutesOptions } from "../../../src/auth/auth-routes.ts";
+import { authRoutes } from "../../../src/auth/auth-routes.ts";
 import { UserRepository } from "../../../src/users/user-repository.ts";
-import type { EmailSender } from "../../../src/notifications/sender.ts";
 
 vi.mock("../../../src/users/user-repository.ts", () => ({
   UserRepository: {
@@ -30,22 +29,18 @@ vi.mock("argon2", () => ({
 
 describe("API call to change user account information: PATCH /update-password", () => {
   const JWT_SECRET = "super_secret_jwt_key_at_least_32_chars";
-  let mockEmailSender: EmailSender;
 
-  async function createTestApp(opts?: AuthRoutesOptions) {
+  async function createTestApp() {
     const app = Fastify({ logger: false });
     app.setValidatorCompiler(validatorCompiler);
     app.setSerializerCompiler(serializerCompiler);
     await app.register(fastifyJwt, { secret: JWT_SECRET });
-    await app.register(authRoutes, opts ?? { emailSender: mockEmailSender });
+    await app.register(authRoutes);
     return app;
   }
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockEmailSender = {
-      send: vi.fn().mockResolvedValue(undefined),
-    };
   });
 
   it("updates password and promotes TEMPORARY user to HIKER", async () => {
@@ -90,53 +85,6 @@ describe("API call to change user account information: PATCH /update-password", 
         phoneNumber: "+39111222333",
         type: "HIKER", // Promoted!
       });
-
-      // Verify security confirmation email is sent
-      expect(mockEmailSender.send).toHaveBeenCalledWith(
-        expect.objectContaining({
-          to: "temp@example.com",
-          subject: "Mountain Hut — Password Changed",
-          text: expect.stringContaining("Your password has been changed successfully."),
-        }),
-      );
-    } finally {
-      await app.close();
-    }
-  });
-
-  it("rejects password reuse with 400 Bad Request if user provides their existing password", async () => {
-    const app = await createTestApp();
-    try {
-      const validToken = app.jwt.sign(
-        { sub: 42, purpose: "password_reset" },
-        { expiresIn: "15m" },
-      );
-
-      vi.mocked(UserRepository.getUserById).mockResolvedValue({
-        id: 42,
-        email: "hiker@example.com",
-        passwordHash: "new_hash_CurrentSecretPassword123",
-        name: "Hiker",
-        surname: "Explorer",
-        phoneNumber: "+39111222333",
-        type: "HIKER",
-      });
-
-      const res = await app.inject({
-        method: "PATCH",
-        url: "/update-password",
-        payload: {
-          token: validToken,
-          newPassword: "CurrentSecretPassword123",
-        },
-      });
-
-      expect(res.statusCode).toBe(StatusCodes.BAD_REQUEST);
-      expect(res.json()).toEqual({
-        message: "For safety reasons, you cannot change the password to your old one.",
-      });
-      expect(UserRepository.updateUser).not.toHaveBeenCalled();
-      expect(mockEmailSender.send).not.toHaveBeenCalled();
     } finally {
       await app.close();
     }

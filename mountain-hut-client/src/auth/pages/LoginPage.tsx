@@ -96,15 +96,6 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <div className="flex justify-end">
-          <Link
-            to="/forgot-password"
-            className="text-sm font-medium text-stone-600 hover:text-green-700 underline"
-          >
-            Forgot password?
-          </Link>
-        </div>
-
         {error && (
           <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
             {error}

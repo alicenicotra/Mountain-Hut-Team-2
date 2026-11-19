@@ -139,68 +139,18 @@ paths:
   /api/v1/auth/update-password:
     patch:
       tags: [Auth]
-      summary: Update password using reset token
-      description: |
-        Resets the user's password using a valid reset token.
-        Rejects password reuse (cannot reuse previous password) and automatically promotes temporary accounts to standard hiker accounts.
-      operationId: updatePassword
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [token, newPassword]
-              properties:
-                token:
-                  type: string
-                  description: Password reset token
-                newPassword:
-                  type: string
-                  minLength: 8
-                  description: New password (at least 8 characters)
+      summary: Update password placeholder
       responses:
-        "204":
-          description: Password updated successfully
-        "400":
-          description: Invalid/expired token or safety rule violation (e.g. password reuse)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Message"
+        "200":
+          description: Placeholder
 
   /api/v1/auth/forgot-password:
     post:
       tags: [Auth]
-      summary: Request password reset
-      description: |
-        Initiates the password recovery process by sending a time-limited reset link to the specified email address, if an associated account exists.
-      operationId: forgotPassword
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [email]
-              properties:
-                email:
-                  type: string
-                  format: email
-                  description: User email address
+      summary: Forgot password placeholder
       responses:
         "200":
-          description: Request acknowledged (returned whether or not account exists to prevent enumeration)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Message"
-        "400":
-          description: Invalid email format
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Message"
+          description: Placeholder
 
   /api/v1/users:
     get:

@@ -3,8 +3,8 @@ import { ApiError, apiFetch } from '../../../src/shared/api/client.ts'
 
 const fetchMock = vi.fn()
 
-function respondWith(body: string | null, status: number) {
-  fetchMock.mockResolvedValue(new Response(status === 204 ? null : body, { status }))
+function respondWith(body: string, status: number) {
+  fetchMock.mockResolvedValue(new Response(body, { status }))
 }
 
 // The error thrown by apiFetch, so that its fields can be checked
@@ -53,14 +53,6 @@ describe('apiFetch', () => {
         '/api/v1/tables',
         expect.objectContaining({ method: 'POST', body }),
       )
-    })
-
-    it('returns null on 204 No Content', async () => {
-      respondWith('', 204)
-
-      const result = await apiFetch('/auth/update-password', { method: 'PATCH' })
-
-      expect(result).toBeNull()
     })
   })
 

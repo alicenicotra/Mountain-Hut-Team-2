@@ -38,9 +38,6 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((v) => v || undefined),
-  APP_URL: z
-    .string()
-    .default(process.env.FRONTEND_URL || "http://localhost:5173"),
 });
 
 const _env = envSchema.safeParse(process.env);
