@@ -41,13 +41,20 @@ export default function ResetPasswordPage() {
       setSuccess(true)
     } catch (err) {
       if (err instanceof ApiError && err.message) {
-        // Strip any residual raw JSON / status wrappers if present
-        const jsonMatch = err.message.match(/\{.*"message":\s*"([^"]+)".*\}/)
-        if (jsonMatch) {
-          setError(jsonMatch[1])
+        let clean = err.message
+        const jsonStartIndex = clean.indexOf('{')
+        if (jsonStartIndex !== -1) {
+          try {
+            const parsed = JSON.parse(clean.slice(jsonStartIndex))
+            if (typeof parsed.message === 'string') clean = parsed.message
+            else if (typeof parsed.error === 'string') clean = parsed.error
+          } catch {
+            clean = clean.replace(/^API error \d+:\s*/, '')
+          }
         } else {
-          setError(err.message.replace(/^API error \d+:\s*/, ''))
+          clean = clean.replace(/^API error \d+:\s*/, '')
         }
+        setError(clean)
       } else {
         setError('Something went wrong. Please try again.')
       }
