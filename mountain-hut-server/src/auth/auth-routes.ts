@@ -23,9 +23,8 @@ export const authRoutes: FastifyPluginAsync = async (server) => {
       },
     },
     async (request, reply) => {
-      const existingUser = await UserRepository.getUserByEmail(
-        request.body.email,
-      );
+      const email = request.body.email.toLowerCase().trim();
+      const existingUser = await UserRepository.getUserByEmail(email);
       if (existingUser) {
         return reply
           .code(StatusCodes.CONFLICT)
@@ -34,11 +33,11 @@ export const authRoutes: FastifyPluginAsync = async (server) => {
 
       const passwordHash = await argon2.hash(request.body.password);
       const user = await UserRepository.createUser({
-        email: request.body.email,
+        email,
         passwordHash,
-        name: request.body.name,
-        surname: request.body.surname,
-        phoneNumber: request.body.phoneNumber,
+        name: request.body.name.trim(),
+        surname: request.body.surname.trim(),
+        phoneNumber: request.body.phoneNumber?.trim() || undefined,
         type: "HIKER",
       });
 
@@ -60,7 +59,8 @@ export const authRoutes: FastifyPluginAsync = async (server) => {
       },
     },
     async (request, reply) => {
-      const user = await UserRepository.getUserByEmail(request.body.email);
+      const email = request.body.email.toLowerCase().trim();
+      const user = await UserRepository.getUserByEmail(email);
       if (!user) {
         return reply
           .code(StatusCodes.UNAUTHORIZED)

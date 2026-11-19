@@ -104,6 +104,18 @@ export const hikesTable = sqliteTable("hikes", {
   createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
 });
 
+export const passwordResetTokensTable = sqliteTable("password_reset_tokens", {
+  id: int().primaryKey({ autoIncrement: true }),
+  userId: int("user_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  expiresAt: text("expires_at").notNull(),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`(CURRENT_TIMESTAMP)`),
+});
+
 // Which tables are available in a slot
 export const tableAvailabilityTable = sqliteTable(
   "table_availability",

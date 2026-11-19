@@ -20,14 +20,19 @@ function errorMessage(status: number, raw: string): string {
     // not JSON (e.g. "Bad Gateway" from a proxy)
   }
 
-  if (body && typeof body === "object" && typeof (body as { error?: unknown }).error === "string") {
-    const { error, details } = body as { error: string; details?: unknown };
-    const messages = Array.isArray(details)
-      ? details
-          .map((d: { message?: unknown }) => d?.message)
-          .filter((m): m is string => typeof m === "string")
-      : [];
-    return messages.length > 0 ? `${error}: ${messages.join("; ")}` : error;
+  if (body && typeof body === "object") {
+    const b = body as { error?: unknown; message?: unknown; details?: unknown };
+    if (typeof b.message === "string" && b.message.trim().length > 0) {
+      return b.message;
+    }
+    if (typeof b.error === "string") {
+      const messages = Array.isArray(b.details)
+        ? b.details
+            .map((d: { message?: unknown }) => d?.message)
+            .filter((m): m is string => typeof m === "string")
+        : [];
+      return messages.length > 0 ? `${b.error}: ${messages.join("; ")}` : b.error;
+    }
   }
 
   return `API error ${status}: ${raw}`;
