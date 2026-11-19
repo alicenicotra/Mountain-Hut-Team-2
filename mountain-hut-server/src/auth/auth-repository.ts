@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../db/database.ts";
 import { passwordResetTokensTable } from "../db/schema.ts";
 
-const TOKEN_EXPIRY_MINUTES = 30;
+const TOKEN_EXPIRY_MINUTES = 24 * 60; // 24 hours per NIST guidelines
 
 export const PasswordResetRepository = {
   /**

@@ -4,11 +4,13 @@ import AuthShell from '../../shared/components/AuthShell.tsx'
 import AuthField from '../components/AuthField.tsx'
 import { resetPassword } from '../api/auth-api.ts'
 import { ApiError } from '../../shared/api/client.ts'
+import { useAuth } from '../hooks/useAuth.ts'
 
 const primaryButton =
   'w-full inline-flex items-center justify-center px-7 py-3 text-base font-semibold text-white bg-green-600 hover:bg-green-500 active:bg-green-700 rounded-lg shadow-lg transition-colors disabled:opacity-50 cursor-pointer'
 
 export default function ResetPasswordPage() {
+  const { logout } = useAuth()
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') || ''
 
@@ -38,6 +40,13 @@ export default function ResetPasswordPage() {
 
     try {
       await resetPassword(token, password)
+      try {
+        localStorage.setItem('mountain_hut_auth_password_reset', Date.now().toString())
+        localStorage.setItem('mountain_hut_auth_changed', Date.now().toString())
+        await logout()
+      } catch {
+        // ignore background logout errors
+      }
       setSuccess(true)
     } catch (err) {
       if (err instanceof ApiError && err.message) {

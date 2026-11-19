@@ -20,6 +20,7 @@ const standardUserSchema = z.object({
   email: z.string(),
   surname: z.string(),
   type: z.enum(["HIKER", "EMPLOYEE", "MANAGER", "TEMPORARY"]),
+  temporaryPassword: z.string().optional(),
 });
 
 const throwawayUserSchema = z.object({

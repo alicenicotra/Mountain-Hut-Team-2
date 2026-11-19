@@ -9,6 +9,8 @@ import {
 
 import { authRoutes } from "../../../src/auth/auth-routes.ts";
 import { UserRepository } from "../../../src/users/user-repository.ts";
+import { PasswordResetRepository } from "../../../src/auth/auth-repository.ts";
+import { emailSender } from "../../../src/notifications/sender.ts";
 
 vi.mock("../../../src/users/user-repository.ts", () => ({
   UserRepository: {
@@ -16,6 +18,20 @@ vi.mock("../../../src/users/user-repository.ts", () => ({
     saveUser: vi.fn(),
     getUserById: vi.fn(),
     updateUser: vi.fn(),
+  },
+}));
+
+vi.mock("../../../src/auth/auth-repository.ts", () => ({
+  PasswordResetRepository: {
+    createToken: vi.fn().mockResolvedValue("mocked_reset_token_12345"),
+    findValidToken: vi.fn(),
+    deleteByUserId: vi.fn(),
+  },
+}));
+
+vi.mock("../../../src/notifications/sender.ts", () => ({
+  emailSender: {
+    send: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -31,6 +47,14 @@ describe("Account creation API: standard, temporary, and throwaway accounts", ()
     const app = Fastify({ logger: false });
     app.setValidatorCompiler(validatorCompiler);
     app.setSerializerCompiler(serializerCompiler);
+
+    app.addHook("preHandler", async (req) => {
+      (req as any).session = {
+        set: vi.fn(),
+        get: vi.fn(),
+        delete: vi.fn(),
+      };
+    });
 
     await app.register(authRoutes);
     return app;
@@ -173,6 +197,19 @@ describe("Account creation API: standard, temporary, and throwaway accounts", ()
         expect(body.id).toBe(202);
         expect(body.type).toBe("TEMPORARY");
         expect(body.email).toBe("paolo.temp@example.com");
+        expect(body.temporaryPassword).toMatch(/^PaoloBianchi\d{3}$/);
+
+        // Verify password reset token was created for user 202
+        expect(PasswordResetRepository.createToken).toHaveBeenCalledWith(202);
+
+        // Verify setup email with temporary password and reset link was sent
+        expect(emailSender.send).toHaveBeenCalledWith(
+          expect.objectContaining({
+            to: "paolo.temp@example.com",
+            subject: "Mountain Hut — Your temporary password and setup link",
+            text: expect.stringContaining(body.temporaryPassword),
+          }),
+        );
       } finally {
         await app.close();
       }
@@ -278,6 +315,72 @@ describe("Account creation API: standard, temporary, and throwaway accounts", ()
         });
 
         expect(res.statusCode).toBe(StatusCodes.BAD_REQUEST);
+      } finally {
+        await app.close();
+      }
+    });
+  });
+
+  describe("Login flow for TEMPORARY accounts", () => {
+    it("sends password reset email on login when user is TEMPORARY", async () => {
+      vi.mocked(UserRepository.getUserByEmail).mockResolvedValue({
+        id: 501,
+        email: "temp@example.com",
+        passwordHash: "hashed_temppass123",
+        name: "Mario",
+        surname: "Rossi",
+        phoneNumber: "+39333111222",
+        type: "TEMPORARY",
+      });
+
+      const app = await createTestApp();
+      try {
+        const res = await app.inject({
+          method: "POST",
+          url: "/login",
+          payload: {
+            email: "temp@example.com",
+            password: "temppass123",
+          },
+        });
+
+        expect(res.statusCode).toBe(StatusCodes.OK);
+        expect(PasswordResetRepository.createToken).toHaveBeenCalledWith(501);
+        expect(emailSender.send).toHaveBeenCalledWith(
+          expect.objectContaining({
+            to: "temp@example.com",
+            subject: "Mountain Hut — Set your password",
+          }),
+        );
+      } finally {
+        await app.close();
+      }
+    });
+
+    it("does not send email on login when user is HIKER", async () => {
+      vi.mocked(UserRepository.getUserByEmail).mockResolvedValue({
+        id: 502,
+        email: "hiker@example.com",
+        passwordHash: "hashed_mypassword",
+        name: "Luigi",
+        surname: "Verdi",
+        phoneNumber: "+39333999888",
+        type: "HIKER",
+      });
+
+      const app = await createTestApp();
+      try {
+        const res = await app.inject({
+          method: "POST",
+          url: "/login",
+          payload: {
+            email: "hiker@example.com",
+            password: "mypassword",
+          },
+        });
+
+        expect(res.statusCode).toBe(StatusCodes.OK);
+        expect(emailSender.send).not.toHaveBeenCalled();
       } finally {
         await app.close();
       }

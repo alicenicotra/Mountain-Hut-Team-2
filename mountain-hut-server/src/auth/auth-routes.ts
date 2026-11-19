@@ -18,6 +18,7 @@ import { env } from "../config.ts";
 import {
   renderPasswordResetEmail,
   renderPasswordChangedConfirmationEmail,
+  renderTemporaryAccountEmail,
 } from "../notifications/utils.ts";
 import { emailSender } from "../notifications/sender.ts";
 
@@ -59,8 +60,9 @@ export const authRoutes: FastifyPluginAsync = async (server) => {
       }
 
       let passwordHash: string | null = null;
+      let rawPassword: string | null = null;
       if (body.type === "TEMPORARY") {
-        const rawPassword = `${body.name}${body.surname ?? ""}${randomInt(100, 1000)}`;
+        rawPassword = `${body.name}${body.surname ?? ""}${randomInt(100, 1000)}`;
         passwordHash = await argon2.hash(rawPassword);
       } else if (body.type !== "THROWAWAY") {
         passwordHash = await argon2.hash(body.password);
@@ -75,9 +77,35 @@ export const authRoutes: FastifyPluginAsync = async (server) => {
         type: body.type,
       });
 
+      if (body.type === "TEMPORARY" && newUser.email && rawPassword) {
+        const plainToken = await PasswordResetRepository.createToken(newUser.id);
+        const resetUrl = `${env.APP_URL}/reset-password?token=${plainToken}`;
+        const { text, html } = renderTemporaryAccountEmail(
+          newUser.name,
+          rawPassword,
+          resetUrl,
+        );
+
+        try {
+          await emailSender.send({
+            to: newUser.email,
+            subject: "Mountain Hut — Your temporary password and setup link",
+            text,
+            html,
+          });
+        } catch (err) {
+          server.log.error({ err }, "Failed to send temporary account email");
+        }
+      }
+
       return reply
         .code(StatusCodes.CREATED)
-        .send(userResponseSchema.parse(newUser));
+        .send(
+          userResponseSchema.parse({
+            ...newUser,
+            ...(rawPassword ? { temporaryPassword: rawPassword } : {}),
+          }),
+        );
     },
   );
 
@@ -112,6 +140,26 @@ export const authRoutes: FastifyPluginAsync = async (server) => {
 
       // save user ID directly into the encrypted cookie
       request.session.set("userId", user.id);
+
+      if (user.type === "TEMPORARY" && user.email) {
+        const plainToken = await PasswordResetRepository.createToken(user.id);
+        const resetUrl = `${env.APP_URL}/reset-password?token=${plainToken}`;
+        const { text, html } = renderPasswordResetEmail(resetUrl, user.name);
+
+        try {
+          await emailSender.send({
+            to: user.email,
+            subject: "Mountain Hut — Set your password",
+            text,
+            html,
+          });
+        } catch (err) {
+          server.log.error(
+            { err },
+            "Failed to send password reset email for temporary user login",
+          );
+        }
+      }
 
       return reply.code(StatusCodes.OK).send(userResponseSchema.parse(user));
     },
@@ -248,6 +296,9 @@ export const authRoutes: FastifyPluginAsync = async (server) => {
             "Failed to send password changed confirmation email",
           ),
         );
+
+      // Clear existing session so the user must log in with their new credentials
+      request.session?.delete?.();
 
       return reply
         .code(StatusCodes.OK)
