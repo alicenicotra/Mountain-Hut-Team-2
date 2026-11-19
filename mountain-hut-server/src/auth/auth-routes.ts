@@ -67,11 +67,11 @@ export const authRoutes: FastifyPluginAsync = async (server) => {
       }
 
       const newUser = await UserRepository.saveUser({
-        email: body.email,
+        email: body.email ? body.email.trim().toLowerCase() : null,
         passwordHash,
-        name: body.name,
-        surname: body.surname,
-        phoneNumber: body.phoneNumber,
+        name: body.name.trim(),
+        surname: body.surname ? body.surname.trim() : null,
+        phoneNumber: body.phoneNumber ? body.phoneNumber.trim() : null,
         type: body.type,
       });
 
