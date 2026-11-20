@@ -43,6 +43,9 @@ vi.mock("../../../src/booking/routes/staff-booking-routes.ts", () => ({
 vi.mock("../../../src/booking/routes/change-booking-routes.ts", () => ({
   changeBookingRoutes: vi.fn(),
 }));
+vi.mock("../../../src/booking/routes/cancel-booking-routes.ts", () => ({
+  cancelBookingRoutes: vi.fn(),
+}));
 vi.mock("../../../src/allergens/allergen-routes.ts", () => ({
   allergenRoutes: vi.fn(),
 }));
@@ -80,7 +83,7 @@ describe("server app startup", () => {
       port: 3000,
       host: "0.0.0.0",
     });
-    expect(mocks.server.register).toHaveBeenCalledTimes(14);
+    expect(mocks.server.register).toHaveBeenCalledTimes(15);
     expect(mocks.server.get).toHaveBeenCalledWith("/", expect.any(Function));
 
     const callback = mocks.server.listen.mock.calls[0][1] as (

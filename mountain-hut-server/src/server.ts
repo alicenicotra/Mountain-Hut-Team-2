@@ -8,19 +8,20 @@ import {
   validatorCompiler,
 } from "fastify-type-provider-zod";
 
-import { env } from "#src/config";
-import { slotRoutes } from "#src/slots/slot-routes";
-import { userRoutes } from "#src/users/user-routes";
 import { UserRepository } from "#src/users/user-repository";
-import { availabilityRoutes } from "#src/booking/routes/availability-routes";
-import { bookingRoutes } from "#src/booking/routes/booking-routes";
-import { staffBookingRoutes } from "#src/booking/routes/staff-booking-routes";
-import { changeBookingRoutes } from "#src/booking/routes/change-booking-routes";
 import { allergenRoutes } from "#src/menus/allergens/allergen-routes";
 import { authRoutes } from "#src/auth/auth-routes";
-import { hikeRoutes } from "#src/hikes/hike-routes";
+import { availabilityRoutes } from "#src/booking/routes/availability-routes";
+import { bookingRoutes } from "#src/booking/routes/booking-routes";
+import { cancelBookingRoutes } from "#src/booking/routes/cancel-booking-routes";
+import { changeBookingRoutes } from "#src/booking/routes/change-booking-routes";
 import { dishRoutes } from "#src/menus/dishes/dish-routes";
+import { env } from "#src/config";
+import { hikeRoutes } from "#src/hikes/hike-routes";
 import { menuRoutes } from "#src/menus/menu-routes";
+import { slotRoutes } from "#src/slots/slot-routes";
+import { staffBookingRoutes } from "#src/booking/routes/staff-booking-routes";
+import { userRoutes } from "#src/users/user-routes";
 
 export function buildApp(opts: FastifyServerOptions = {}) {
   const server = Fastify({
@@ -73,6 +74,7 @@ export function buildApp(opts: FastifyServerOptions = {}) {
   server.register(bookingRoutes, { prefix: BASE_URL });
   server.register(changeBookingRoutes, { prefix: BASE_URL });
   server.register(staffBookingRoutes, { prefix: BASE_URL });
+  server.register(cancelBookingRoutes, { prefix: BASE_URL });
 
   server.register(hikeRoutes, { prefix: BASE_URL });
 
