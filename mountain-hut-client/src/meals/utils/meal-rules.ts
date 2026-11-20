@@ -1,4 +1,5 @@
 import type { Course, MealAllergen, MealDish } from "../types/meal.ts";
+import type { MealMenu } from "../types/meal.ts";
 
 export const COURSE_ORDER: Course[] = ["APPETIZER", "MAIN", "SIDE", "DESSERT", "BEVERAGE"];
 
@@ -54,4 +55,37 @@ export function longDayLabel(date: string): string {
     month: "long",
     timeZone: "UTC",
   });
+}
+
+// The name of a meal time from its start
+export function mealLabel(from: string): string {
+  if (from < "11:00") return "Breakfast";
+  if (from < "16:00") return "Lunch";
+  return "Dinner";
+}
+
+// "Sat"
+export function weekdayShort(date: string): string {
+  return new Date(`${date}T00:00:00.000Z`).toLocaleDateString("en-GB", {
+    weekday: "short",
+    timeZone: "UTC",
+  });
+}
+
+// "2026-11-05" -> "5"
+export function dayNumber(date: string): string {
+  return String(Number(date.slice(8, 10)));
+}
+
+// A menu suits the party when none of its allergens is one they avoid
+export function menuSuits(menu: MealMenu, avoid: number[]): boolean {
+  return !menu.allergens.some((a) => avoid.includes(a.id));
+}
+
+// Menus that suit the party first; keeps the original order inside each group
+export function sortBySuitability(menus: MealMenu[], avoid: number[]): MealMenu[] {
+  if (avoid.length === 0) return menus;
+  return [...menus].sort(
+    (a, b) => Number(!menuSuits(a, avoid)) - Number(!menuSuits(b, avoid)),
+  );
 }

@@ -17,16 +17,29 @@ export default function AllergenFilter({
   onClear,
 }: AllergenFilterProps) {
   return (
-    <fieldset className="rounded-lg border border-stone-200 bg-stone-50/60 px-4 py-3">
+    <fieldset className="rounded-xl border border-stone-200 bg-gradient-to-br from-stone-50 to-white px-4 py-3">
       <div className="flex items-center justify-between gap-3">
-        <legend className="text-xs font-semibold uppercase tracking-wider text-green-700">
+        <legend className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-green-700">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4"
+          >
+            <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" />
+            <path d="M9 12l2 2 4-4" />
+          </svg>
           Your party avoids
         </legend>
         {selected.length > 0 && (
           <button
             type="button"
             onClick={onClear}
-            className="text-sm font-medium text-stone-600 underline hover:text-green-700 cursor-pointer"
+            className="text-sm font-medium text-stone-600 underline hover:text-green-700 cursor-pointer motion-safe:animate-pop-in"
           >
             Clear
           </button>
@@ -57,13 +70,14 @@ export default function AllergenFilter({
                 type="button"
                 aria-pressed={active}
                 onClick={() => onToggle(allergen.id)}
-                className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition cursor-pointer ${
+                className={`inline-flex items-center gap-1 rounded-full px-3.5 py-1.5 text-sm font-medium transition duration-200 cursor-pointer motion-safe:active:scale-95 ${
                   active
                     ? "bg-red-600 text-white shadow-sm"
                     : "border border-stone-300 bg-white text-stone-700 hover:border-red-400 hover:text-red-700"
                 }`}
               >
                 {allergen.name}
+                {active && <span aria-hidden="true">✕</span>}
               </button>
             );
           })}

@@ -6,6 +6,8 @@ import {
   groupByCourse,
   longDayLabel,
   nextDays,
+  menuSuits,
+  sortBySuitability,
 } from "../../../src/meals/utils/meal-rules.ts";
 import type { Course, MealDish } from "../../../src/meals/types/meal.ts";
 
@@ -52,5 +54,36 @@ describe("MH-134 meal rules", () => {
     expect(dayChipLabel("2026-11-22", "2026-11-21")).toBe("Tomorrow");
     expect(dayChipLabel("2026-11-23", "2026-11-21")).toMatch(/^Mon,? 23 Nov$/);
     expect(longDayLabel("2026-11-21")).toMatch(/^Saturday,? 21 November$/);
+  });
+});
+
+describe("menuSuits / sortBySuitability", () => {
+  const gluten = { id: 1, name: "Gluten" };
+  const milk = { id: 2, name: "Milk" };
+  const menu = (id: number, name: string, allergens: { id: number; name: string }[]) =>
+    ({ id, name, type: "TEMPLATE", allergens, dishes: [] }) as unknown as MealMenu;
+
+  const alpino = menu(1, "Alpino", [gluten]);
+  const leggero = menu(2, "Leggero", []);
+  const cacciatore = menu(3, "Cacciatore", [milk]);
+
+  it("a menu suits when it has none of the avoided allergens", () => {
+    expect(menuSuits(leggero, [1])).toBe(true);
+    expect(menuSuits(cacciatore, [1])).toBe(true);
+    expect(menuSuits(alpino, [1])).toBe(false);
+  });
+
+  it("every menu suits when nothing is avoided", () => {
+    expect(menuSuits(alpino, [])).toBe(true);
+  });
+
+  it("puts suiting menus first and keeps the order inside each group", () => {
+    const sorted = sortBySuitability([alpino, leggero, cacciatore], [1]);
+    expect(sorted.map((m) => m.name)).toEqual(["Leggero", "Cacciatore", "Alpino"]);
+  });
+
+  it("keeps the original order when nothing is avoided", () => {
+    const list = [alpino, leggero, cacciatore];
+    expect(sortBySuitability(list, [])).toBe(list);
   });
 });

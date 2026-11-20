@@ -82,8 +82,7 @@ describe("MealsPage (MH-134)", () => {
     expect(alpino.getByText("Tagliere")).toBeInTheDocument();
     expect(alpino.getByText("Cold cuts and cheese")).toBeInTheDocument();
     expect(alpino.getByText("Sides")).toBeInTheDocument();
-    expect(alpino.getByText("Allergens: Milk, Wheat")).toBeInTheDocument();
-
+    expect(alpino.getByText("Allergens:").parentElement).toHaveTextContent("Allergens: Milk, Wheat");
     const leggero = within(meal.getByRole("article", { name: "Menu Leggero" }));
     expect(leggero.getByText("No listed allergens")).toBeInTheDocument();
   });
