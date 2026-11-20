@@ -15,6 +15,14 @@ export interface MenuWithDishes extends Menu {
   dishes: Dish[];
 }
 
+// these could be reused across the whole application
+export type DbClient = typeof db;
+export type DbTransaction = Parameters<
+  Parameters<DbClient["transaction"]>[0]
+>[0];
+export type DbExecutor = DbClient | DbTransaction;
+// --------------------------------------------------
+
 export class MenuRepository {
   static async getMenus(type?: MenuType): Promise<MenuWithDishes[]> {
     const menus = await db
@@ -87,5 +95,28 @@ export class MenuRepository {
       .returning({ id: menusTable.id });
 
     return result.length > 0;
+  }
+
+  /**
+   * Verifies that the provided menu ids are actual menus saved in the database.
+   *
+   * @returns an array containing the ids that don't match any menu saved in the database.
+   *          if all ids are valid, the array is empty.
+   */
+  static async verifyIds(
+    ids: number[],
+    tx: DbExecutor = db,
+  ): Promise<number[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const existingMenus = await tx
+      .select({ id: menusTable.id })
+      .from(menusTable)
+      .where(inArray(menusTable.id, ids));
+
+    const existingIds = new Set(existingMenus.map((m) => m.id));
+    return ids.filter((id) => !existingIds.has(id));
   }
 }
