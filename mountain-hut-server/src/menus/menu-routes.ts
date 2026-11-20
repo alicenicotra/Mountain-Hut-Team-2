@@ -3,6 +3,7 @@ import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
 
+import { requireStaff } from "#src/middlewares/requireStaff";
 import { MenuRepository } from "#src/menus/menu-repository";
 import {
   createMenuSchema,
@@ -35,6 +36,7 @@ export const menuRoutes: FastifyPluginAsync = async (server) => {
   typed.post(
     "/",
     {
+      preHandler: requireStaff,
       schema: {
         summary: "Creates a new menu.",
         body: createMenuSchema,
@@ -55,6 +57,7 @@ export const menuRoutes: FastifyPluginAsync = async (server) => {
   typed.delete(
     "/:id",
     {
+      preHandler: requireStaff,
       schema: {
         summary: "Deletes a menu.",
         description:
