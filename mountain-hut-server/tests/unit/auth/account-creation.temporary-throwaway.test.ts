@@ -38,7 +38,9 @@ vi.mock("../../../src/notifications/sender.ts", () => ({
 vi.mock("argon2", () => ({
   default: {
     hash: vi.fn(async (pw: string) => `hashed_${pw}`),
-    verify: vi.fn(async (hash: string, plain: string) => hash === `hashed_${plain}`),
+    verify: vi.fn(
+      async (hash: string, plain: string) => hash === `hashed_${plain}`,
+    ),
   },
 }));
 
@@ -142,7 +144,9 @@ describe("Account creation API: standard, temporary, and throwaway accounts", ()
         });
 
         expect(res.statusCode).toBe(StatusCodes.CONFLICT);
-        expect(res.json()).toEqual({ message: "An account with this email already exists" });
+        expect(res.json()).toEqual({
+          message: "An account with this email already exists",
+        });
         expect(UserRepository.saveUser).not.toHaveBeenCalled();
       } finally {
         await app.close();
@@ -150,158 +154,7 @@ describe("Account creation API: standard, temporary, and throwaway accounts", ()
     });
   });
 
-  describe("Temporary Accounts (created by employee)", () => {
-    it("creates a temporary account with an automatically generated password", async () => {
-      vi.mocked(UserRepository.getUserByEmail).mockResolvedValue(null);
-      vi.mocked(UserRepository.saveUser).mockImplementation(async (data) => ({
-        id: 202,
-        email: data.email,
-        passwordHash: data.passwordHash,
-        name: data.name,
-        surname: data.surname,
-        phoneNumber: data.phoneNumber,
-        type: data.type,
-      }));
-
-      const app = await createTestApp();
-      try {
-        const res = await app.inject({
-          method: "POST",
-          url: "/register",
-          payload: {
-            type: "TEMPORARY",
-            name: "Paolo",
-            surname: "Bianchi",
-            email: "paolo.temp@example.com",
-            phoneNumber: "+39333444555",
-          },
-        });
-
-        expect(res.statusCode).toBe(StatusCodes.CREATED);
-
-        // Verify that argon2 was called with generated password containing PaoloBianchi
-        expect(argon2.hash).toHaveBeenCalledWith(
-          expect.stringMatching(/^PaoloBianchi\d{3}$/),
-        );
-
-        expect(UserRepository.saveUser).toHaveBeenCalledWith({
-          email: "paolo.temp@example.com",
-          passwordHash: expect.stringMatching(/^hashed_PaoloBianchi\d{3}$/),
-          name: "Paolo",
-          surname: "Bianchi",
-          phoneNumber: "+39333444555",
-          type: "TEMPORARY",
-        });
-
-        const body = res.json();
-        expect(body.id).toBe(202);
-        expect(body.type).toBe("TEMPORARY");
-        expect(body.email).toBe("paolo.temp@example.com");
-        expect(body.temporaryPassword).toMatch(/^PaoloBianchi\d{3}$/);
-
-        // Verify password reset token was created for user 202
-        expect(PasswordResetRepository.createToken).toHaveBeenCalledWith(202);
-
-        // Verify setup email with temporary password and reset link was sent
-        expect(emailSender.send).toHaveBeenCalledWith(
-          expect.objectContaining({
-            to: "paolo.temp@example.com",
-            subject: "Mountain Hut — Your temporary password and setup link",
-            text: expect.stringContaining(body.temporaryPassword),
-          }),
-        );
-      } finally {
-        await app.close();
-      }
-    });
-  });
-
   describe("Throwaway Accounts (name and optional phone number)", () => {
-    it("creates a throwaway account with only name and valid user_id", async () => {
-      vi.mocked(UserRepository.saveUser).mockResolvedValue({
-        id: 303,
-        email: null,
-        passwordHash: null,
-        name: "Quick Booking Guest",
-        surname: null,
-        phoneNumber: null,
-        type: "THROWAWAY",
-      });
-
-      const app = await createTestApp();
-      try {
-        const res = await app.inject({
-          method: "POST",
-          url: "/register",
-          payload: {
-            type: "THROWAWAY",
-            name: "Quick Booking Guest",
-          },
-        });
-
-        expect(res.statusCode).toBe(StatusCodes.CREATED);
-        // Password hash must NOT be called for throwaway accounts
-        expect(argon2.hash).not.toHaveBeenCalled();
-
-        expect(UserRepository.saveUser).toHaveBeenCalledWith({
-          email: null,
-          passwordHash: null,
-          name: "Quick Booking Guest",
-          surname: null,
-          phoneNumber: null,
-          type: "THROWAWAY",
-        });
-
-        expect(res.json()).toEqual({
-          id: 303,
-          email: null,
-          name: "Quick Booking Guest",
-          surname: null,
-          phoneNumber: null,
-          type: "THROWAWAY",
-        });
-      } finally {
-        await app.close();
-      }
-    });
-
-    it("creates a throwaway account with name and phone number", async () => {
-      vi.mocked(UserRepository.saveUser).mockResolvedValue({
-        id: 304,
-        email: null,
-        passwordHash: null,
-        name: "John",
-        surname: null,
-        phoneNumber: "+39333888777",
-        type: "THROWAWAY",
-      });
-
-      const app = await createTestApp();
-      try {
-        const res = await app.inject({
-          method: "POST",
-          url: "/register",
-          payload: {
-            type: "THROWAWAY",
-            name: "John",
-            phoneNumber: "+39333888777",
-          },
-        });
-
-        expect(res.statusCode).toBe(StatusCodes.CREATED);
-        expect(res.json()).toEqual({
-          id: 304,
-          email: null,
-          name: "John",
-          surname: null,
-          phoneNumber: "+39333888777",
-          type: "THROWAWAY",
-        });
-      } finally {
-        await app.close();
-      }
-    });
-
     it("rejects throwaway account registration if name is missing", async () => {
       const app = await createTestApp();
       try {

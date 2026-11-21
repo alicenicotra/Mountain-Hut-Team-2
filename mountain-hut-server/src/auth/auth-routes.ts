@@ -2,7 +2,6 @@ import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import argon2 from "argon2";
 import { StatusCodes } from "http-status-codes";
-import { randomInt } from "node:crypto";
 import { z } from "zod";
 
 import { UserRepository } from "../users/user-repository.ts";
@@ -18,7 +17,6 @@ import { env } from "../config.ts";
 import {
   renderPasswordResetEmail,
   renderPasswordChangedConfirmationEmail,
-  renderTemporaryAccountEmail,
 } from "../notifications/utils.ts";
 import { emailSender } from "../notifications/sender.ts";
 
@@ -48,64 +46,28 @@ export const authRoutes: FastifyPluginAsync = async (server) => {
       },
     },
     async (request, reply) => {
-      const body = request.body;
-
-      if (body.email) {
-        const existingUser = await UserRepository.getUserByEmail(body.email);
-        if (existingUser) {
-          return reply
-            .code(StatusCodes.CONFLICT)
-            .send({ message: "An account with this email already exists" });
-        }
+      const existingUser = await UserRepository.getUserByEmail(
+        request.body.email,
+      );
+      if (existingUser) {
+        return reply
+          .code(StatusCodes.CONFLICT)
+          .send({ message: "An account with this email already exists" });
       }
 
-      let passwordHash: string | null = null;
-      let rawPassword: string | null = null;
-      if (body.type === "TEMPORARY") {
-        rawPassword = `${body.name}${body.surname ?? ""}${randomInt(100, 1000)}`;
-        passwordHash = await argon2.hash(rawPassword);
-      } else if (body.type !== "THROWAWAY") {
-        passwordHash = await argon2.hash(body.password);
-      }
-
-      const newUser = await UserRepository.saveUser({
-        email: body.email ? body.email.trim().toLowerCase() : null,
+      const passwordHash = await argon2.hash(request.body.password);
+      const user = await UserRepository.saveUser({
+        email: request.body.email,
         passwordHash,
-        name: body.name.trim(),
-        surname: body.surname ? body.surname.trim() : null,
-        phoneNumber: body.phoneNumber ? body.phoneNumber.trim() : null,
-        type: body.type,
+        name: request.body.name,
+        surname: request.body.surname,
+        phoneNumber: request.body.phoneNumber,
+        type: "HIKER",
       });
-
-      if (body.type === "TEMPORARY" && newUser.email && rawPassword) {
-        const plainToken = await PasswordResetRepository.createToken(newUser.id);
-        const resetUrl = `${env.APP_URL}/reset-password?token=${plainToken}`;
-        const { text, html } = renderTemporaryAccountEmail(
-          newUser.name,
-          rawPassword,
-          resetUrl,
-        );
-
-        try {
-          await emailSender.send({
-            to: newUser.email,
-            subject: "Mountain Hut — Your temporary password and setup link",
-            text,
-            html,
-          });
-        } catch (err) {
-          server.log.error({ err }, "Failed to send temporary account email");
-        }
-      }
 
       return reply
         .code(StatusCodes.CREATED)
-        .send(
-          userResponseSchema.parse({
-            ...newUser,
-            ...(rawPassword ? { temporaryPassword: rawPassword } : {}),
-          }),
-        );
+        .send(userResponseSchema.parse(user));
     },
   );
 
