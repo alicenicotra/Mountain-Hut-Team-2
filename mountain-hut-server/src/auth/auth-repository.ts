@@ -1,10 +1,14 @@
 import argon2 from "argon2";
 import { randomBytes } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, type InferSelectModel } from "drizzle-orm";
 import { db } from "../db/database.ts";
 import { passwordResetTokensTable } from "../db/schema.ts";
 
 const TOKEN_EXPIRY_MINUTES = 24 * 60; // 24 hours per NIST guidelines
+
+export type PasswordResetToken = InferSelectModel<
+  typeof passwordResetTokensTable
+>;
 
 export const PasswordResetRepository = {
   /**
@@ -37,9 +41,7 @@ export const PasswordResetRepository = {
    * Finds a valid (non-expired) token row that matches the plain-text token.
    * Returns null if not found or expired.
    */
-  async findValidToken(
-    plainToken: string,
-  ): Promise<(typeof passwordResetTokensTable.$inferSelect) | null> {
+  async findValidToken(plainToken: string): Promise<PasswordResetToken | null> {
     const rows = await db.select().from(passwordResetTokensTable).all();
 
     for (const row of rows) {

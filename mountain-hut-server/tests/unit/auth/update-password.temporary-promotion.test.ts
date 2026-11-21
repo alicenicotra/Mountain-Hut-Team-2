@@ -62,7 +62,8 @@ describe("API call to change user account information: POST /reset-password", ()
         id: 1,
         userId: 42,
         tokenHash: "token_hash",
-        expiresAt: "2099-01-01T00:00:00.000Z",
+        createdAt: "2099-01-01T00:00:00.000Z",
+        expiresAt: "2099-01-02T00:00:00.000Z",
       });
 
       vi.mocked(UserRepository.getUserById).mockResolvedValue({
@@ -107,7 +108,9 @@ describe("API call to change user account information: POST /reset-password", ()
         expect.objectContaining({
           to: "temp@example.com",
           subject: "Mountain Hut — Password changed successfully",
-          text: expect.stringContaining("Your password has been changed successfully."),
+          text: expect.stringContaining(
+            "Your password has been changed successfully.",
+          ),
         }),
       );
     } finally {
@@ -122,7 +125,8 @@ describe("API call to change user account information: POST /reset-password", ()
         id: 2,
         userId: 50,
         tokenHash: "token_hash",
-        expiresAt: "2099-01-01T00:00:00.000Z",
+        createdAt: "2099-01-01T00:00:00.000Z",
+        expiresAt: "2099-01-02T00:00:00.000Z",
       });
 
       vi.mocked(UserRepository.getUserById).mockResolvedValue({
@@ -147,10 +151,13 @@ describe("API call to change user account information: POST /reset-password", ()
       });
 
       expect(res.statusCode).toBe(StatusCodes.OK);
-      expect(UserRepository.updateUser).toHaveBeenCalledWith(50, expect.objectContaining({
-        type: "HIKER",
-        passwordHash: "new_hash_BrandNewPassword123!",
-      }));
+      expect(UserRepository.updateUser).toHaveBeenCalledWith(
+        50,
+        expect.objectContaining({
+          type: "HIKER",
+          passwordHash: "new_hash_BrandNewPassword123!",
+        }),
+      );
       expect(PasswordResetRepository.deleteByUserId).toHaveBeenCalledWith(50);
     } finally {
       await app.close();
@@ -164,7 +171,8 @@ describe("API call to change user account information: POST /reset-password", ()
         id: 3,
         userId: 42,
         tokenHash: "token_hash",
-        expiresAt: "2099-01-01T00:00:00.000Z",
+        createdAt: "2099-01-01T00:00:00.000Z",
+        expiresAt: "2099-01-02T00:00:00.000Z",
       });
 
       vi.mocked(UserRepository.getUserById).mockResolvedValue({
@@ -188,7 +196,8 @@ describe("API call to change user account information: POST /reset-password", ()
 
       expect(res.statusCode).toBe(StatusCodes.BAD_REQUEST);
       expect(res.json()).toEqual({
-        message: "For safety reasons, you cannot change the password to your old one.",
+        message:
+          "For safety reasons, you cannot change the password to your old one.",
       });
       expect(UserRepository.updateUser).not.toHaveBeenCalled();
       expect(PasswordResetRepository.deleteByUserId).not.toHaveBeenCalled();
@@ -213,7 +222,9 @@ describe("API call to change user account information: POST /reset-password", ()
       });
 
       expect(res.statusCode).toBe(StatusCodes.BAD_REQUEST);
-      expect(res.json()).toEqual({ message: "Invalid or expired reset token." });
+      expect(res.json()).toEqual({
+        message: "Invalid or expired reset token.",
+      });
       expect(UserRepository.getUserById).not.toHaveBeenCalled();
       expect(UserRepository.updateUser).not.toHaveBeenCalled();
     } finally {
@@ -228,7 +239,8 @@ describe("API call to change user account information: POST /reset-password", ()
         id: 4,
         userId: 9999,
         tokenHash: "token_hash",
-        expiresAt: "2099-01-01T00:00:00.000Z",
+        createdAt: "2099-01-01T00:00:00.000Z",
+        expiresAt: "2099-01-02T00:00:00.000Z",
       });
 
       vi.mocked(UserRepository.getUserById).mockResolvedValue(null);
