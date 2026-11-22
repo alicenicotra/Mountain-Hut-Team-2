@@ -338,25 +338,6 @@ test.describe('as an employee', () => {
     await expect(reserveButton(page)).toBeEnabled()
   })
 
-  // Not available yet: to be replaced by real tests with MH-20 and the new account
-  test('shows the other two options as not available', async ({ page }) => {
-    const day = freeDay()
-    const time = await createSlot(page, day, '12:00', '13:00')
-    await chooseDay(page, day)
-    await slotTile(page, time).click()
-
-    for (const [option, field] of [
-      ['New account', 'Email'],
-      ['Just a name', 'Phone (optional)'],
-    ]) {
-      await page.getByRole('button', { name: option }).click()
-
-      await expect(page.getByText('Not available yet')).toBeVisible()
-      await expect(page.getByLabel(field)).toBeDisabled()
-      await expect(reserveButton(page)).toBeDisabled()
-    }
-  })
-
   test('moves to another day, and forgets the chosen slot', async ({ page, request }) => {
     const hiker = await registerHiker(request)
     const day = freeDay()
@@ -373,5 +354,122 @@ test.describe('as an employee', () => {
     await page.getByRole('button', { name: 'Previous day' }).click()
 
     await expect(slotTile(page, time)).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  // MH-07 clarifications: a hiker missing from the system gets a full account
+  // (random password, changed at the first login) or just a name (no login)
+  test.describe('a hiker who is not in the system yet', () => {
+    const uniqueId = () => randomUUID().replaceAll('-', '').slice(0, 10)
+
+    async function fillNewAccount(page: Page, hiker: Hiker) {
+      await page.getByRole('button', { name: 'New account' }).click()
+      await page.getByLabel('Name', { exact: true }).fill(hiker.name)
+      await page.getByLabel('Surname').fill(hiker.surname)
+      await page.getByLabel('Email').fill(hiker.email)
+      await page.getByLabel('Mobile number').fill(hiker.phone)
+    }
+
+    test('gets a new account, whose password lets them log in', async ({ page, browser }) => {
+      const id = uniqueId()
+      const hiker = {
+        name: `Bea${id}`,
+        surname: `Walker${id}`,
+        email: `e2e.new.${id}@example.com`,
+        phone: `+39${String(Math.floor(Math.random() * 1e10)).padStart(10, '0')}`,
+      }
+      const day = freeDay()
+      const time = await createSlot(page, day, '12:00', '13:00')
+      await chooseDay(page, day)
+      await slotTile(page, time).click()
+
+      await fillNewAccount(page, hiker)
+      await reserveButton(page).click()
+
+      await expect(page.getByText('✓ Reservation confirmed')).toBeVisible()
+      await expect(page.getByText(new RegExp(`${hiker.name} ${hiker.surname} · 2 people`))).toBeVisible()
+      const notice = page.getByRole('status')
+      await expect(notice).toContainText('change it at their first login')
+      await expect(notice).toContainText(`sent to ${hiker.email}`)
+      // innerText keeps the line break before the next sentence
+      const password = (await notice.innerText()).match(/Temporary password: (\S+)/)?.[1]
+      expect(password).toBeTruthy()
+
+      // The employee tells the password to the hiker, who can log in with it
+      // and is asked to set their own one
+      const hikerContext = await browser.newContext({ baseURL: test.info().project.use.baseURL })
+      const hikerPage = await hikerContext.newPage()
+      await hikerPage.goto('/login')
+      await logIn(hikerPage, hiker.email, password!)
+      await expect(hikerPage.getByText('Please check your email to activate your account.')).toBeVisible()
+      await hikerContext.close()
+
+      // The seats are taken for real
+      await page.getByRole('button', { name: 'New reservation' }).click()
+      await expect(slotTile(page, time)).toContainText('2 seats free')
+    })
+
+    test('gets just a name, and is found later to book again', async ({ page }) => {
+      const name = `Luigi${uniqueId()}`
+      const day = freeDay()
+      const lunch = await createSlot(page, day, '12:00', '13:00')
+      const dinner = await createSlot(page, day, '19:00', '21:00')
+      await chooseDay(page, day)
+      await slotTile(page, lunch).click()
+
+      await page.getByRole('button', { name: 'Just a name' }).click()
+      await page.getByLabel('Name', { exact: true }).fill(name)
+      await reserveButton(page).click()
+
+      await expect(page.getByText('✓ Reservation confirmed')).toBeVisible()
+      await expect(page.getByText(new RegExp(`${name}\\s+· 2 people`))).toBeVisible()
+      await expect(page.getByText(/Temporary password/)).toHaveCount(0)
+
+      // Now the hiker is in the system: the staff find them by name
+      await page.getByRole('button', { name: 'New reservation' }).click()
+      await slotTile(page, dinner).click()
+      await searchField(page).fill(name)
+      await page.getByRole('button', { name: new RegExp(name) }).click()
+      await reserveButton(page).click()
+
+      await expect(page.getByText('✓ Reservation confirmed')).toBeVisible()
+      await expect(page.getByText(new RegExp(`${name}\\s+· 2 people · .*19:00–21:00`))).toBeVisible()
+    })
+
+    test('cannot get a new account with the email of another hiker', async ({ page, request }) => {
+      const existing = await registerHiker(request)
+      const day = freeDay()
+      const time = await createSlot(page, day, '12:00', '13:00')
+      await chooseDay(page, day)
+      await slotTile(page, time).click()
+
+      await fillNewAccount(page, { ...existing, name: 'Someone', surname: 'Else' })
+      await reserveButton(page).click()
+
+      await expect(page.getByText(/An account with this email already exists/)).toBeVisible()
+      await expect(page.getByText('✓ Reservation confirmed')).toHaveCount(0)
+      await expect(slotTile(page, time)).toContainText('4 seats free')
+    })
+
+    test('cannot reserve until the required details are there', async ({ page }) => {
+      const day = freeDay()
+      const time = await createSlot(page, day, '12:00', '13:00')
+      await chooseDay(page, day)
+      await slotTile(page, time).click()
+
+      await page.getByRole('button', { name: 'New account' }).click()
+      await page.getByLabel('Name', { exact: true }).fill('Anna')
+      await page.getByLabel('Surname').fill('Bianchi')
+      await page.getByLabel('Email').fill('anna.bianchi@example.com')
+      await expect(reserveButton(page)).toBeDisabled()
+      await page.getByLabel('Mobile number').fill('+393331112223')
+      await expect(reserveButton(page)).toBeEnabled()
+
+      await page.getByRole('button', { name: 'Just a name' }).click()
+      await expect(reserveButton(page)).toBeDisabled()
+      await page.getByLabel('Phone (optional)').fill('+393331112223')
+      await expect(reserveButton(page)).toBeDisabled()
+      await page.getByLabel('Name', { exact: true }).fill('Anna')
+      await expect(reserveButton(page)).toBeEnabled()
+    })
   })
 })
