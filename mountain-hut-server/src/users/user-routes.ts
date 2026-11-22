@@ -2,9 +2,19 @@ import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
+import argon2 from "argon2";
 
 import { UserRepository, type User } from "./user-repository.ts";
-import { getUserQuerySchema, userResponseSchema } from "./user-schema.ts";
+import {
+  getUserQuerySchema,
+  userCreationSchema,
+  userResponseSchema,
+} from "./user-schema.ts";
+import { randomInt } from "node:crypto";
+import { PasswordResetRepository } from "../auth/auth-repository.ts";
+import { renderTemporaryAccountEmail } from "../notifications/utils.ts";
+import { emailSender } from "../notifications/sender.ts";
+import { env } from "../config.ts";
 
 export async function requireEmployeeOrManager(
   request: FastifyRequest,
@@ -60,7 +70,105 @@ export const userRoutes: FastifyPluginAsync = async (server) => {
           .send({ message: "User Not Found" });
       }
 
-      return reply.code(StatusCodes.OK).send(users);
+      return reply
+        .code(StatusCodes.OK)
+        .send(users.map((rawUser) => userResponseSchema.parse(rawUser)));
+    },
+  );
+
+  typed.post(
+    "/",
+    {
+      preHandler: requireEmployeeOrManager,
+      schema: {
+        body: userCreationSchema,
+        response: {
+          [StatusCodes.CREATED]: userResponseSchema,
+          [StatusCodes.CONFLICT]: z.object({ message: z.string() }),
+          [StatusCodes.FORBIDDEN]: z.object({ message: z.string() }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { body } = request;
+
+      if (
+        request.user &&
+        request.user.type === "EMPLOYEE" &&
+        body.type === "MANAGER"
+      ) {
+        return reply
+          .code(StatusCodes.FORBIDDEN)
+          .send({ message: "Employees cannot create new MANAGER accounts." });
+      }
+
+      if (body.type === "THROWAWAY") {
+        const newUser = await UserRepository.saveUser({
+          email: null,
+          passwordHash: null,
+          name: body.name,
+          surname: null,
+          phoneNumber: body.phoneNumber ?? null,
+          type: body.type,
+        });
+
+        return reply
+          .code(StatusCodes.CREATED)
+          .send(userResponseSchema.parse(newUser));
+      }
+
+      const existingUser = await UserRepository.getUserByEmail(body.email);
+      if (existingUser) {
+        return reply
+          .code(StatusCodes.CONFLICT)
+          .send({ message: "An account with this email already exists" });
+      }
+
+      const rawPassword =
+        body.type === "TEMPORARY"
+          ? `${body.name}${body.surname ?? ""}${randomInt(100, 1000)}`
+          : body.password;
+      const passwordHash = await argon2.hash(rawPassword);
+
+      const newUser = await UserRepository.saveUser({
+        email: body.email,
+        passwordHash,
+        name: body.name,
+        surname: body.surname,
+        phoneNumber: body.phoneNumber,
+        type: body.type,
+      });
+
+      // send mail with randomly generated password to temporary users
+      if (body.type === "TEMPORARY" && newUser.email && rawPassword) {
+        const plainToken = await PasswordResetRepository.createToken(
+          newUser.id,
+        );
+        const resetUrl = `${env.APP_URL}/reset-password?token=${plainToken}`;
+        const { text, html } = renderTemporaryAccountEmail(
+          newUser.name,
+          rawPassword,
+          resetUrl,
+        );
+
+        try {
+          await emailSender.send({
+            to: newUser.email,
+            subject: "Mountain Hut — Your temporary password and setup link",
+            text,
+            html,
+          });
+        } catch (err) {
+          server.log.error({ err }, "Failed to send temporary account email");
+        }
+      }
+
+      return reply.code(StatusCodes.CREATED).send(
+        userResponseSchema.parse({
+          ...newUser,
+          ...(rawPassword ? { temporaryPassword: rawPassword } : {}),
+        }),
+      );
     },
   );
 };

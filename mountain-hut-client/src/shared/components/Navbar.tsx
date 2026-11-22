@@ -6,12 +6,15 @@ type Role = string | null; // null = guest
 
 const STAFF = ["EMPLOYEE", "MANAGER"];
 const MAIL_SERVICE_URL =
-  import.meta.env.VITE_MAIL_SERVICE_URL || "http://localhost:8025";
+  import.meta.env.VITE_MAIL_SERVICE_URL ||
+  "https://accounts.google.com/AccountChooser?Email=mountain.hut.team2%40gmail.com&continue=https%3A%2F%2Fmail.google.com%2Fmail%2F";
 
 const navItems: { path: string; label: string; end?: boolean; show: (role: Role) => boolean }[] = [
   { path: "/", label: "Home", end: true, show: () => true },
   { path: "/booking", label: "Book a table", show: (role) => role === null || role === "HIKER" },
   { path: "/my-bookings", label: "My bookings", show: (role) => role === "HIKER" },
+  { path: "/hikes", label: "Register a hike", show: (role) => role === "HIKER" },
+  { path: "/my-hikes", label: "My hikes", show: (role) => role === "HIKER" },
   { path: "/employee/slots", label: "Manage slots", show: (role) => role !== null && STAFF.includes(role) },
   { path: "/employee/reservations", label: "New reservation", show: (role) => role !== null && STAFF.includes(role) },
   { path: "/login", label: "Login", show: (role) => role === null },
