@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { ApiError } from "../../shared/api/client.ts";
 import AuthShell from "../../shared/components/AuthShell.tsx";
+import Icon, { type IconName } from "../../shared/components/Icon.tsx";
 import { registerHike } from "../api/hikes-api.ts";
 import RoutePicker from "../components/RoutePicker.tsx";
 import StopsField from "../components/StopsField.tsx";
@@ -27,17 +28,23 @@ const HOUR_MS = 60 * 60 * 1000;
 const RETURN_PRESETS = [3, 5, 8, 12]; // hours after departure
 
 const primaryButton =
-  "w-full inline-flex items-center justify-center px-7 py-3 text-base font-semibold text-white bg-green-600 hover:bg-green-500 active:bg-green-700 rounded-lg shadow-lg transition-colors disabled:opacity-50 cursor-pointer";
+  "w-full inline-flex items-center justify-center gap-2 px-7 py-3 text-base font-semibold text-white bg-green-600 hover:bg-green-500 active:bg-green-700 rounded-xl shadow-lg transition-all hover:shadow-xl active:scale-[0.99] disabled:opacity-50 cursor-pointer";
 
 const inputClass =
-  "w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 shadow-xs placeholder:text-stone-400 focus:border-green-600 focus:outline-hidden focus:ring-2 focus:ring-green-600/30";
+  "w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2 text-base text-stone-900 shadow-xs placeholder:text-stone-400 transition-colors hover:border-green-600 focus:border-green-600 focus:outline-hidden focus:ring-2 focus:ring-green-600/30";
 
-function SectionLabel({ children, htmlFor }: { children: string; htmlFor?: string }) {
-  const className = "block text-xs font-semibold uppercase tracking-wider text-green-700 mb-1.5";
+function SectionLabel({ children, htmlFor, icon }: { children: string; htmlFor?: string; icon: IconName }) {
+  const className = "flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-green-700 mb-1.5";
+  const content = (
+    <>
+      <Icon name={icon} className="w-5 h-5" />
+      {children}
+    </>
+  );
   return htmlFor ? (
-    <label htmlFor={htmlFor} className={className}>{children}</label>
+    <label htmlFor={htmlFor} className={className}>{content}</label>
   ) : (
-    <p className={className}>{children}</p>
+    <p className={className}>{content}</p>
   );
 }
 
@@ -145,16 +152,16 @@ export default function RegisterHikePage() {
 
   return (
     <AuthShell
-      width="4xl"
+      width="5xl"
       badge="Safety"
       title="Register a hike"
       subtitle="Tell the hut where you are going and when you plan to be back."
     >
-      <form onSubmit={handleSubmit} onChange={() => setFormError(null)} noValidate className="space-y-4">
+      <form onSubmit={handleSubmit} onChange={() => setFormError(null)} noValidate className="space-y-5">
         {registered && (
           <div
             role="status"
-            className="flex gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-2.5 text-sm text-green-900"
+            className="flex gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-base text-green-900 animate-pop-in"
           >
             <svg
               aria-hidden="true"
@@ -179,7 +186,7 @@ export default function RegisterHikePage() {
         )}
 
         <div>
-          <SectionLabel>Choose a route</SectionLabel>
+          <SectionLabel icon="map">Choose a route</SectionLabel>
           <RoutePicker selectedId={routeId} onSelect={handleRouteSelect} />
         </div>
 
@@ -187,7 +194,7 @@ export default function RegisterHikePage() {
           {/* Left: where */}
           <div className="flex flex-col gap-4 md:border-r md:border-stone-200 md:pr-8">
             <div>
-              <SectionLabel htmlFor="destination">Destination</SectionLabel>
+              <SectionLabel htmlFor="destination" icon="pin">Destination</SectionLabel>
               <input
                 id="destination"
                 maxLength={MAX_DESTINATION_LENGTH}
@@ -199,17 +206,17 @@ export default function RegisterHikePage() {
             </div>
 
             <div>
-              <SectionLabel htmlFor="routeDescription">Route details</SectionLabel>
+              <SectionLabel htmlFor="routeDescription" icon="map">Route details</SectionLabel>
               <textarea
                 id="routeDescription"
-                rows={3}
+                rows={2}
                 maxLength={MAX_ROUTE_LENGTH}
                 value={route}
                 onChange={(e) => setRoute(e.target.value)}
                 placeholder="e.g. From the hut to the lake on trail 12, then back along the ridge"
-                className={`${inputClass} field-sizing-content min-h-20 resize-none`}
+                className={`${inputClass} field-sizing-content min-h-16 resize-none`}
               />
-              <div className="mt-1 flex justify-between gap-4 text-xs text-stone-500">
+              <div className="mt-1 flex justify-between gap-4 text-sm text-stone-500">
                 <span>Add any detours or stops you plan.</span>
                 <span>{route.length}/{MAX_ROUTE_LENGTH}</span>
               </div>
@@ -221,7 +228,7 @@ export default function RegisterHikePage() {
           {/* Right: when, and who to call */}
           <div className="flex flex-col gap-4">
             <div>
-              <SectionLabel htmlFor="departureAt">Departure</SectionLabel>
+              <SectionLabel htmlFor="departureAt" icon="calendar">Departure</SectionLabel>
               <input
                 id="departureAt"
                 type="datetime-local"
@@ -232,7 +239,7 @@ export default function RegisterHikePage() {
             </div>
 
             <div>
-              <SectionLabel htmlFor="expectedReturnAt">Expected return</SectionLabel>
+              <SectionLabel htmlFor="expectedReturnAt" icon="clock">Expected return</SectionLabel>
               <input
                 id="expectedReturnAt"
                 type="datetime-local"
@@ -242,8 +249,8 @@ export default function RegisterHikePage() {
                 aria-invalid={reversed}
                 className={`${inputClass} ${reversed ? "border-amber-500" : ""}`}
               />
-              <div role="group" aria-label="Back in" className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="text-sm font-medium text-stone-600">Back in</span>
+              <div role="group" aria-label="Back in" className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="text-base font-medium text-stone-600">Back in</span>
                 {RETURN_PRESETS.map((hours) => {
                   const selected = hasRange && durationMs === hours * HOUR_MS;
                   return (
@@ -256,7 +263,7 @@ export default function RegisterHikePage() {
                         setExpectedReturn(addHours(departure, hours));
                         setFormError(null);
                       }}
-                      className={`rounded-full px-4 py-1.5 text-sm font-medium transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 ${
+                      className={`rounded-full px-4 py-1.5 text-base font-medium transition-all cursor-pointer active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${
                         selected
                           ? "bg-green-600 text-white shadow-sm"
                           : "border border-stone-300 bg-white text-stone-700 hover:border-green-600 hover:text-green-700"
@@ -270,7 +277,7 @@ export default function RegisterHikePage() {
             </div>
 
             <div>
-              <SectionLabel htmlFor="emergencyContactPhone">Emergency contact (optional)</SectionLabel>
+              <SectionLabel htmlFor="emergencyContactPhone" icon="phone">Emergency contact (optional)</SectionLabel>
               <input
                 id="emergencyContactPhone"
                 type="tel"
@@ -281,20 +288,22 @@ export default function RegisterHikePage() {
                 placeholder="+39 333 123 4567"
                 className={inputClass}
               />
-              <p className="mt-1 text-xs text-stone-500">
+              <p className="mt-1 text-sm text-stone-500">
                 Someone the hut can call if you can't be reached.
               </p>
             </div>
 
-            <div className="mt-auto space-y-3">
+            <div className="mt-auto space-y-2.5">
               {hasRange && !reversed && (
-                <p className="rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-900">
+                <p key={`${departure}|${expectedReturn}`} className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-base text-green-900 animate-fade-up">
+                  <Icon name="clock" className="w-5 h-5 text-green-700" />
                   {formatHikeRange(departure, expectedReturn)} · out for {formatDuration(durationMs)}
                 </p>
               )}
 
               {reversed && (
-                <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+                <p className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-800">
+                  <Icon name="warning" className="w-5 h-5" />
                   The expected return must be after the departure.
                 </p>
               )}
@@ -302,17 +311,20 @@ export default function RegisterHikePage() {
               {formError && (
                 <div
                   role="alert"
-                  className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2 text-sm text-red-700"
+                  className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700"
                 >
+                  <Icon name="warning" className="w-5 h-5" />
                   {formError}
                 </div>
               )}
 
               <button type="submit" disabled={submitting} className={primaryButton}>
+                <Icon name="shield" className="w-5 h-5" />
                 {submitting ? "Registering…" : "Register hike"}
               </button>
 
-              <p className="text-center text-xs text-stone-500">
+              <p className="flex items-center justify-center gap-1.5 text-center text-sm text-stone-500">
+                <Icon name="lock" className="w-4 h-4" />
                 Only hut staff can see your route and contact details.
               </p>
             </div>

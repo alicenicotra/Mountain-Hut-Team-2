@@ -5,6 +5,8 @@ import { formatDay, normalizeTime, todayString } from "../../shared/utils/date.t
 import CopyTablesPicker from "./CopyTablesPicker";
 import TimeField from "./TimeField";
 import Step from "../../shared/components/Step.tsx";
+import Icon from "../../shared/components/Icon.tsx";
+import { primaryButton } from "../../shared/styles.ts";
 import type { Table, TimeSlot } from "../types/slot.ts";
 
 interface CreateSlotFormProps {
@@ -27,8 +29,9 @@ const TIME_OPTIONS = Array.from({ length: 36 }, (_, i) => {
 });
 
 const chip =
-  "px-3 py-1.5 rounded-full border text-sm transition cursor-pointer";
-const link = "text-sm hover:underline";
+  "inline-flex items-center gap-2 px-4 py-2 rounded-full border text-base transition-all cursor-pointer active:scale-95";
+const link =
+  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors cursor-pointer";
 
 export default function CreateSlotForm({ date, tables, menus = [], menusError = null, onCreated }: CreateSlotFormProps) {
   const [from, setFrom] = useState("");
@@ -127,18 +130,22 @@ export default function CreateSlotForm({ date, tables, menus = [], menusError = 
                 }}
                 className={`${chip} ${
                   selected
-                    ? "border-green-600 bg-green-50 text-green-900"
+                    ? "border-green-600 bg-green-50 text-green-900 shadow-sm"
                     : "border-stone-300 bg-white text-stone-700 hover:border-green-600 hover:text-green-800"
                 }`}
               >
                 {preset.label} {preset.from}–{preset.to}
+                <Icon
+                  name={preset.label === "Dinner" ? "moon" : "sun"}
+                  className={`w-5 h-5 ${preset.label === "Dinner" ? "text-indigo-500" : "text-amber-500"}`}
+                />
               </button>
             );
           })}
         </div>
-        <div className="flex items-start gap-3">
+        <div className="flex flex-wrap items-start gap-4">
           <TimeField label="Start" value={from} onChange={setFrom} listId="slot-times" />
-          <span className="pt-8 text-stone-400">–</span>
+          <span className="pt-9 text-xl text-stone-400">–</span>
           <TimeField label="End" value={to} onChange={setTo} listId="slot-times" />
         </div>
         <datalist id="slot-times">
@@ -156,21 +163,22 @@ export default function CreateSlotForm({ date, tables, menus = [], menusError = 
             <button
               type="button"
               onClick={() => setPickerOpen(true)}
-              className={`${link} text-sky-700`}
+              className={`${link} text-sky-700 hover:bg-sky-50`}
             >
-              ⧉ Copy from another slot
+              <Icon name="copy" className="w-4 h-4" />
+              Copy from another slot
             </button>
             <button
               type="button"
               onClick={() => selectTables(tables.map((t) => t.id))}
-              className={`${link} text-green-700`}
+              className={`${link} text-green-700 hover:bg-green-50`}
             >
               All
             </button>
             <button
               type="button"
               onClick={() => selectTables([])}
-              className={`${link} text-stone-600`}
+              className={`${link} text-stone-600 hover:bg-stone-100`}
             >
               None
             </button>
@@ -185,13 +193,16 @@ export default function CreateSlotForm({ date, tables, menus = [], menusError = 
           />
         )}
         {copiedFrom && (
-          <p className="text-sm text-sky-800">⧉ Copied from {copiedFrom}</p>
+          <p className="inline-flex items-center gap-2 rounded-lg bg-sky-50 px-3 py-1.5 text-sm text-sky-800 animate-pop-in">
+            <Icon name="copy" className="w-4 h-4" />
+            Copied from {copiedFrom}
+          </p>
         )}
 
         {tables.length === 0 ? (
-          <p className="text-sm text-stone-500">No tables yet</p>
+          <p className="rounded-xl border-2 border-dashed border-stone-300 p-6 text-center text-base text-stone-500">No tables yet</p>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {tables.map((table) => {
               const selected = selectedTableIds.includes(table.id);
               return (
@@ -200,21 +211,27 @@ export default function CreateSlotForm({ date, tables, menus = [], menusError = 
                   type="button"
                   aria-pressed={selected}
                   onClick={() => toggleTable(table.id)}
-                  className={`rounded-lg border-2 p-3 text-left transition-colors ${
+                  className={`rounded-xl border-2 p-3 text-left transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-md ${
                     selected
-                      ? "border-green-600 bg-green-50"
+                      ? "border-green-600 bg-green-50 shadow-sm"
                       : "border-stone-200 bg-white hover:border-stone-400"
                   }`}
                 >
                   <span className="flex items-center justify-between">
-                    <span className="text-lg font-semibold">{table.code}</span>
+                    <span className="text-xl font-semibold text-stone-900">{table.code}</span>
                     {selected && (
-                      <span aria-hidden="true" className="text-green-700">
-                        ✓
+                      <span
+                        aria-hidden="true"
+                        className="flex items-center justify-center w-6 h-6 rounded-full bg-green-600 text-white animate-pop-in"
+                      >
+                        <Icon name="check" className="w-3.5 h-3.5" />
                       </span>
                     )}
                   </span>
-                  <span className="block text-sm text-stone-600">{table.seats} seats</span>
+                  <span className="mt-0.5 flex items-center gap-1.5 text-sm text-stone-600">
+                    <Icon name="users" className="w-4 h-4 text-stone-400" />
+                    {table.seats} seats
+                  </span>
                 </button>
               );
             })}
@@ -224,50 +241,63 @@ export default function CreateSlotForm({ date, tables, menus = [], menusError = 
 
       <Step number={3} title="Menus">
         {menusError ? (
-          <p role="alert" className="text-sm text-amber-800">
+          <p role="alert" className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <Icon name="warning" className="w-5 h-5" />
             Could not load menus: {menusError}. You can still create the slot without menus.
           </p>
         ) : menus.length === 0 ? (
-          <p className="text-sm text-stone-500">
+          <p className="flex items-center gap-2 text-sm text-stone-500">
+            <Icon name="info" className="w-5 h-5" />
             No menus available yet. Create them in Manage menus before assigning them to a slot.
           </p>
         ) : (
           <>
-            <details className="rounded-lg border border-stone-300 bg-white">
-              <summary className="cursor-pointer px-4 py-3 font-medium text-stone-800">
+            <details className="group rounded-xl border border-stone-300 bg-white shadow-xs open:shadow-sm">
+              <summary className="flex cursor-pointer items-center gap-3 px-4 py-3 text-base font-medium text-stone-800 list-none [&::-webkit-details-marker]:hidden">
+                <Icon name="book" className="w-5 h-5 text-green-700" />
                 Select menus ({selectedMenuIds.length} selected)
+                <Icon name="chevronRight" className="ml-auto w-5 h-5 text-stone-400 transition-transform group-open:rotate-90" />
               </summary>
-              <div role="group" aria-label="Menus for this slot" className="grid gap-2 border-t border-stone-200 p-3">
+              <div role="group" aria-label="Menus for this slot" className="grid gap-2 border-t border-stone-200 p-3 sm:grid-cols-2">
                 {menus.map((menu) => (
-                  <label key={menu.id} className="flex cursor-pointer items-center gap-3 rounded px-2 py-2 text-sm hover:bg-green-50">
+                  <label key={menu.id} className="flex cursor-pointer items-center gap-3 rounded-lg border border-transparent px-3 py-2 text-base transition-colors hover:border-green-200 hover:bg-green-50 has-checked:border-green-300 has-checked:bg-green-50">
                     <input
                       type="checkbox"
                       checked={selectedMenuIds.includes(menu.id)}
                       onChange={() => toggleMenu(menu.id)}
-                      className="accent-green-700"
+                      className="w-4 h-4 accent-green-700"
                     />
                     <span>{menu.name}</span>
-                    <span className="ml-auto text-xs text-stone-500">{menu.type === "TEMPLATE" ? "Default" : "Custom"}</span>
+                    <span
+                      className={`ml-auto rounded-full px-2 py-0.5 text-xs ${
+                        menu.type === "TEMPLATE" ? "bg-stone-100 text-stone-600" : "bg-amber-100 text-amber-800"
+                      }`}
+                    >
+                      {menu.type === "TEMPLATE" ? "Default" : "Custom"}
+                    </span>
                   </label>
                 ))}
               </div>
             </details>
-            <p className="mt-1 text-xs text-stone-500">
+            <p className="text-sm text-stone-500">
               The selected menus will be offered for this time slot.
             </p>
           </>
         )}
       </Step>
 
-      <div className="flex flex-wrap items-center gap-4 border-t border-stone-200 pt-4">
-        <p>
-          <span className="text-2xl font-semibold">{selectedSeats}</span> seats
+      <div className="flex flex-wrap items-center gap-4 rounded-xl border border-green-200 bg-linear-to-r from-green-50 to-white p-4">
+        <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-green-100 text-green-800">
+          <Icon name="users" className="w-6 h-6" />
+        </span>
+        <p className="text-stone-700">
+          <span className="text-2xl font-semibold text-stone-900">{selectedSeats}</span> seats
           <span className="text-sm text-stone-500"> · {selectedTableIds.length} tables</span>
         </p>
         <button
           type="submit"
           disabled={submitting || isPast}
-          className="ml-auto px-5 py-2.5 rounded bg-green-700 text-white font-medium hover:bg-green-800 disabled:bg-stone-300"
+          className={`ml-auto ${primaryButton}`}
         >
           {submitting
             ? "Creating…"
@@ -277,12 +307,30 @@ export default function CreateSlotForm({ date, tables, menus = [], menusError = 
         </button>
       </div>
 
-      {isPast && <p className="text-sm text-amber-700">This day is in the past</p>}
-      {!isPast && selectedTableIds.length === 0 && (from || to) && (
-        <p className="text-sm text-amber-700">0 seats: nobody can book this slot</p>
+      {isPast && (
+        <p className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <Icon name="warning" className="w-5 h-5" />
+          This day is in the past
+        </p>
       )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      {success && <p className="text-sm text-green-700">✓ {success}</p>}
+      {!isPast && selectedTableIds.length === 0 && (from || to) && (
+        <p className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <Icon name="warning" className="w-5 h-5" />
+          0 seats: nobody can book this slot
+        </p>
+      )}
+      {error && (
+        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <Icon name="warning" className="w-5 h-5" />
+          <p>{error}</p>
+        </div>
+      )}
+      {success && (
+        <p className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800 animate-pop-in">
+          <Icon name="check" className="w-5 h-5" />
+          {success}
+        </p>
+      )}
     </form>
   );
 }

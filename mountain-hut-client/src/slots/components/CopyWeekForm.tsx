@@ -2,6 +2,8 @@ import { useState, type FormEvent } from "react";
 import { copyWeek } from "../api/slots-api.ts";
 import { todayString } from "../../shared/utils/date.ts";
 import { mondayOf } from "../utils/week-date.ts";
+import Icon from "../../shared/components/Icon.tsx";
+import { inputBase, primaryButton } from "../../shared/styles.ts";
 
 interface CopyWeekFormProps {
   selectedDate: string;
@@ -50,7 +52,7 @@ export default function CopyWeekForm({ selectedDate, onCopied }: CopyWeekFormPro
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <p className="text-sm text-stone-600">
+      <p className="text-base text-stone-600">
         Repeat slots and their table assignments across up to 12 weeks. Existing bookings are never copied.
       </p>
       <div className="grid gap-4 sm:grid-cols-3">
@@ -61,7 +63,7 @@ export default function CopyWeekForm({ selectedDate, onCopied }: CopyWeekFormPro
             type="date"
             value={sourceDate}
             onChange={(event) => { setSourceDate(event.target.value); setError(null); }}
-            className="mt-1 block w-full rounded border border-stone-300 bg-white p-2"
+            className={`mt-1 block w-full ${inputBase}`}
             required
           />
           <span className="mt-1 block text-xs font-normal text-stone-500">Monday {sourceWeekStart}</span>
@@ -73,7 +75,7 @@ export default function CopyWeekForm({ selectedDate, onCopied }: CopyWeekFormPro
             type="date"
             value={targetDate}
             onChange={(event) => { setTargetDate(event.target.value); setError(null); }}
-            className="mt-1 block w-full rounded border border-stone-300 bg-white p-2"
+            className={`mt-1 block w-full ${inputBase}`}
             required
           />
           <span className="mt-1 block text-xs font-normal text-stone-500">Monday {targetWeekStart}</span>
@@ -88,33 +90,46 @@ export default function CopyWeekForm({ selectedDate, onCopied }: CopyWeekFormPro
             step={1}
             value={weeks}
             onChange={(event) => { setWeeks(event.target.value); setError(null); }}
-            className="mt-1 block w-full rounded border border-stone-300 bg-white p-2"
+            className={`mt-1 block w-full ${inputBase}`}
             required
           />
           <span className="mt-1 block text-xs font-normal text-stone-500">1–12 consecutive weeks</span>
         </label>
       </div>
       {targetWeekStart < todayString() && (
-        <p className="text-sm text-amber-700">The destination week must not start in the past.</p>
+        <p className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <Icon name="warning" className="w-5 h-5" />
+          The destination week must not start in the past.</p>
       )}
       {overlaps && (
-        <p className="text-sm text-amber-700">Source and destination weeks cannot overlap.</p>
+        <p className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <Icon name="warning" className="w-5 h-5" />
+          Source and destination weeks cannot overlap.</p>
       )}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs text-stone-500">
+        <p className="flex items-start gap-2 text-sm text-stone-500 max-w-xl">
+          <Icon name="info" className="w-5 h-5 mt-0.5" />
+          <span>
           Existing slots in destination weeks are replaced.
           If any destination week has active bookings,
           nothing is copied.
+          </span>
         </p>
         <button
           type="submit"
           disabled={invalid || submitting}
-          className="rounded bg-green-700 px-4 py-2 font-medium text-white hover:bg-green-800 disabled:bg-stone-300"
+          className={primaryButton}
         >
+          <Icon name="repeat" className="w-5 h-5" />
           {submitting ? "Copying…" : "Copy week"}
         </button>
       </div>
-      {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+      {error && (
+        <p role="alert" className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <Icon name="warning" className="w-5 h-5" />
+          {error}
+        </p>
+      )}
     </form>
   );
 }

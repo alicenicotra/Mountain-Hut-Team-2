@@ -3,6 +3,7 @@ import {
   SUGGESTED_ROUTES,
   type SuggestedRoute,
 } from "../utils/suggested-routes.ts";
+import Icon from "../../shared/components/Icon.tsx";
 
 interface RoutePickerProps {
   selectedId: string | null;
@@ -20,7 +21,7 @@ function RouteArt({ kind }: { kind: SuggestedRoute["art"] | "custom" }) {
   const common = {
     viewBox: "0 0 200 70",
     preserveAspectRatio: "xMidYMid slice",
-    className: "block h-16 w-full",
+    className: "block h-[4.5rem] w-full transition-transform duration-500 group-hover:scale-105",
     "aria-hidden": true,
   } as const;
 
@@ -87,11 +88,22 @@ function RouteArt({ kind }: { kind: SuggestedRoute["art"] | "custom" }) {
 }
 
 const cardClass = (selected: boolean) =>
-  `relative overflow-hidden rounded-xl border bg-white text-left transition cursor-pointer ${
+  `group relative overflow-hidden rounded-xl border bg-white text-left transition-all cursor-pointer hover:-translate-y-0.5 ${
     selected
       ? "border-green-600 ring-2 ring-green-600/40 shadow-md"
-      : "border-stone-200 hover:border-green-600 hover:shadow-sm"
+      : "border-stone-200 hover:border-green-600 hover:shadow-md"
   }`;
+
+function SelectedMark() {
+  return (
+    <span
+      aria-hidden="true"
+      className="absolute left-2 top-2 flex items-center justify-center w-6 h-6 rounded-full bg-green-600 text-white shadow-md animate-pop-in"
+    >
+      <Icon name="check" className="w-3.5 h-3.5" />
+    </span>
+  );
+}
 
 export default function RoutePicker({ selectedId, onSelect }: RoutePickerProps) {
   return (
@@ -106,13 +118,15 @@ export default function RoutePicker({ selectedId, onSelect }: RoutePickerProps) 
         >
           <RouteArt kind={route.art} />
           <span
-            className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[11px] font-semibold ${DIFFICULTY_CLASS[route.difficulty]}`}
+            className={`absolute right-2 top-2 rounded-full px-2.5 py-0.5 text-xs font-semibold shadow-xs ${DIFFICULTY_CLASS[route.difficulty]}`}
           >
             {route.difficulty}
           </span>
+          {selectedId === route.id && <SelectedMark />}
           <span className="block px-3 py-2">
-            <span className="block text-sm font-semibold text-stone-900">{route.name}</span>
-            <span className="block text-xs text-stone-500">
+            <span className="block text-base font-semibold text-stone-900">{route.name}</span>
+            <span className="flex items-center gap-1.5 text-sm text-stone-500">
+              <Icon name="clock" className="w-4 h-4" />
               {route.hours} h · {route.distanceKm} km · +{route.ascentM} m
             </span>
           </span>
@@ -126,9 +140,13 @@ export default function RoutePicker({ selectedId, onSelect }: RoutePickerProps) 
         className={cardClass(selectedId === CUSTOM_ROUTE_ID)}
       >
         <RouteArt kind="custom" />
+        {selectedId === CUSTOM_ROUTE_ID && <SelectedMark />}
         <span className="block px-3 py-2">
-          <span className="block text-sm font-semibold text-stone-900">My own route</span>
-          <span className="block text-xs text-stone-500">Describe it yourself</span>
+          <span className="block text-base font-semibold text-stone-900">My own route</span>
+          <span className="flex items-center gap-1.5 text-sm text-stone-500">
+            <Icon name="pencil" className="w-4 h-4" />
+            Describe it yourself
+          </span>
         </span>
       </button>
     </div>

@@ -5,9 +5,10 @@ import { ApiError } from '../../shared/api/client.ts'
 import { useAuth } from '../hooks/useAuth.ts'
 import AuthShell from '../../shared/components/AuthShell.tsx'
 import AuthField from '../components/AuthField.tsx'
+import Icon from '../../shared/components/Icon.tsx'
 
 const primaryButton =
-  'w-full inline-flex items-center justify-center px-7 py-2.5 text-base font-semibold text-white bg-green-600 hover:bg-green-500 active:bg-green-700 rounded-lg shadow-lg transition-colors disabled:opacity-50 cursor-pointer'
+  'w-full inline-flex items-center justify-center gap-2 px-7 py-3 text-base font-semibold text-white bg-green-600 hover:bg-green-500 active:bg-green-700 rounded-xl shadow-lg transition-all hover:shadow-xl active:scale-[0.99] disabled:opacity-50 cursor-pointer'
 
 const MIN_PASSWORD_LENGTH = 8 // TODO: align with registerSchema in auth.schema.ts
 
@@ -87,25 +88,31 @@ export default function RegisterPage() {
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
           <AuthField
             id="name"
+            required
             label="Name"
+            icon="user"
             autoComplete="given-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
           <AuthField
             id="surname"
+            required
             label="Surname"
+            icon="user"
             autoComplete="family-name"
             value={surname}
             onChange={(e) => setSurname(e.target.value)}
           />
           <AuthField
             id="email"
+            required
             label="Email"
+            icon="mail"
             type="email"
             autoComplete="email"
             placeholder="you@example.com"
@@ -114,7 +121,9 @@ export default function RegisterPage() {
           />
           <AuthField
             id="phone"
+            required
             label="Phone number"
+            icon="phone"
             type="tel"
             autoComplete="tel"
             placeholder="+39 333 123 4567"
@@ -123,7 +132,9 @@ export default function RegisterPage() {
           />
           <AuthField
             id="password"
+            required
             label="Password"
+            icon="lock"
             type="password"
             autoComplete="new-password"
             hint={`At least ${MIN_PASSWORD_LENGTH} characters`}
@@ -132,7 +143,9 @@ export default function RegisterPage() {
           />
           <AuthField
             id="confirm"
+            required
             label="Confirm password"
+            icon="lock"
             type="password"
             autoComplete="new-password"
             value={confirm}
@@ -141,14 +154,19 @@ export default function RegisterPage() {
         </div>
 
         {error && (
-          <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div role="alert" className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
+            <Icon name="warning" className="w-5 h-5" />
             {error}
           </div>
         )}
 
         <button type="submit" disabled={submitting} className={primaryButton}>
+          <Icon name="check" className="w-5 h-5" />
           {submitting ? 'Creating account…' : 'Create account'}
         </button>
+        <p className="text-sm text-stone-500">
+          <span aria-hidden="true" className="text-red-600">*</span> Required fields
+        </p>
       </form>
     </AuthShell>
   )

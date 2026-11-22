@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router";
 import { useAuth } from "../../auth/hooks/useAuth.ts";
+import Icon from "./Icon.tsx";
+import Logo from "./Logo.tsx";
 
 type Role = string | null; // null = guest
 
@@ -11,7 +13,7 @@ const MAIL_SERVICE_URL =
 
 const navItems: { path: string; label: string; end?: boolean; show: (role: Role) => boolean }[] = [
   { path: "/", label: "Home", end: true, show: () => true },
-  { path: "/meals", label: "Meals", show: () => true },
+  { path: "/meals", label: "Meals", show: (role) => role === null || role === "HIKER" },
   { path: "/booking", label: "Book a table", show: (role) => role === null || role === "HIKER" },
   { path: "/my-bookings", label: "My bookings", show: (role) => role === "HIKER" },
   { path: "/hikes", label: "Register a hike", show: (role) => role === "HIKER" },
@@ -23,10 +25,13 @@ const navItems: { path: string; label: string; end?: boolean; show: (role: Role)
   { path: "/register", label: "Register", show: (role) => role === null },
 ];
 
+// The green bar under the link grows in on hover and stays on the current page
 const linkClass = ({ isActive }: { isActive: boolean }) =>
-  isActive
-    ? "font-semibold text-green-700"
-    : "text-stone-700 hover:text-green-700 transition-colors";
+  `relative py-1 transition-colors after:absolute after:inset-x-0 after:-bottom-0.5 after:h-0.5 after:rounded-full after:bg-green-600 after:transition-transform after:duration-300 ${
+    isActive
+      ? "font-semibold text-green-700 after:scale-x-100"
+      : "text-stone-700 hover:text-green-700 after:scale-x-0 hover:after:scale-x-100"
+  }`;
 
 const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
   `block px-3 py-2 rounded-md text-base transition-colors ${
@@ -77,8 +82,8 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/85 backdrop-blur-lg backdrop-saturate-150 border-b border-white/50 shadow-sm">
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-        <NavLink to="/" className="text-lg font-bold text-green-800">
-          Mountain Hut
+        <NavLink to="/" className="group -ml-5 flex translate-y-0.5 items-center">
+          <Logo className="h-8" />
         </NavLink>
 
         {/* Desktop navigation */}
@@ -99,7 +104,7 @@ export default function Navbar() {
                   title="Open Hut Email Service"
                   className="inline-flex items-center gap-1.5 text-stone-700 hover:text-green-700 transition-colors"
                 >
-                  <span aria-hidden="true">✉️</span>
+                  <Icon name="mail" className="w-5 h-5" />
                   <span>Hut Mail</span>
                 </a>
               )}
@@ -133,7 +138,7 @@ export default function Navbar() {
                   <div
                     role="menu"
                     aria-orientation="vertical"
-                    className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-stone-200 py-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150"
+                    className="absolute right-0 top-full mt-2 w-60 bg-white rounded-xl shadow-lg border border-stone-200 py-1.5 z-50 animate-pop-in origin-top-right"
                   >
                     <div className="px-4 py-2 border-b border-stone-100">
                       <p className="text-sm font-semibold text-stone-900 truncate">
@@ -200,7 +205,7 @@ export default function Navbar() {
 
       {/* Mobile navigation panel */}
       {isOpen && (
-        <div className="md:hidden border-t border-white/40 bg-white/80 backdrop-blur-md px-4 pt-2 pb-3 space-y-1 shadow-lg">
+        <div className="md:hidden border-t border-white/40 bg-white/80 backdrop-blur-md px-4 pt-2 pb-3 space-y-1 shadow-lg animate-fade-up">
           {visibleItems.map((item) => (
             <NavLink
               key={item.path}
@@ -224,7 +229,7 @@ export default function Navbar() {
                   onClick={() => setIsOpen(false)}
                   className="flex items-center gap-2 px-3 py-2 rounded-md text-base text-stone-700 hover:text-green-700 hover:bg-white/60 transition-colors"
                 >
-                  <span aria-hidden="true">✉️</span>
+                  <Icon name="mail" className="w-5 h-5" />
                   <span>Hut Mail</span>
                 </a>
               )}

@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import AuthShell from '../../shared/components/AuthShell.tsx'
 import AuthField from '../components/AuthField.tsx'
+import Icon from '../../shared/components/Icon.tsx'
 import { resetPassword } from '../api/auth-api.ts'
 import { ApiError } from '../../shared/api/client.ts'
 import { useAuth } from '../hooks/useAuth.ts'
 
 const primaryButton =
-  'w-full inline-flex items-center justify-center px-7 py-3 text-base font-semibold text-white bg-green-600 hover:bg-green-500 active:bg-green-700 rounded-lg shadow-lg transition-colors disabled:opacity-50 cursor-pointer'
+  'w-full inline-flex items-center justify-center gap-2 px-7 py-3 text-base font-semibold text-white bg-green-600 hover:bg-green-500 active:bg-green-700 rounded-xl shadow-lg transition-all hover:shadow-xl active:scale-[0.99] disabled:opacity-50 cursor-pointer'
 
 export default function ResetPasswordPage() {
   const { logout } = useAuth()
@@ -88,24 +89,29 @@ export default function ResetPasswordPage() {
     >
       {success ? (
         <div className="space-y-4">
-          <div role="status" className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+          <div role="status" className="flex items-start gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 animate-pop-in">
+            <Icon name="check" className="w-5 h-5 shrink-0" />
             Your password has been reset successfully. You can now log in with your new password.
           </div>
           <Link to="/login" className={primaryButton}>
+            <Icon name="login" className="w-5 h-5" />
             Go to Log in
           </Link>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           {!token && (
-            <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
+            <div role="alert" className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
+              <Icon name="warning" className="w-5 h-5" />
               Missing reset token. Please use the link provided in your email.
             </div>
           )}
 
           <AuthField
             id="password"
+            required
             label="New Password"
+            icon="lock"
             type="password"
             autoComplete="new-password"
             placeholder="At least 8 characters"
@@ -115,7 +121,9 @@ export default function ResetPasswordPage() {
 
           <AuthField
             id="confirmPassword"
+            required
             label="Confirm New Password"
+            icon="lock"
             type="password"
             autoComplete="new-password"
             placeholder="Repeat password"
@@ -124,14 +132,19 @@ export default function ResetPasswordPage() {
           />
 
           {error && (
-            <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
+            <div role="alert" className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
+              <Icon name="warning" className="w-5 h-5" />
               {error}
             </div>
           )}
 
           <button type="submit" disabled={submitting || !token} className={primaryButton}>
+            <Icon name="key" className="w-5 h-5" />
             {submitting ? 'Resetting…' : 'Reset Password'}
           </button>
+          <p className="text-sm text-stone-500">
+            <span aria-hidden="true" className="text-red-600">*</span> Required fields
+          </p>
         </form>
       )}
     </AuthShell>

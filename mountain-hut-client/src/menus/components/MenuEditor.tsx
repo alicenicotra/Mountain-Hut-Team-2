@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from "react";
 import type { Dish, Menu } from "../types/menu.ts";
+import Icon from "../../shared/components/Icon.tsx";
+import { inputBase, primaryButton } from "../../shared/styles.ts";
 
 const MIN_COURSES = 6;
 const MAX_COURSES = 12;
@@ -47,12 +49,17 @@ export default function MenuEditor({ menu, dishes, onSave, onNewDish }: MenuEdit
   }
 
   return (
-    <form onSubmit={submit} className="space-y-5">
-      <div>
+    <form onSubmit={submit} className="space-y-6">
+      <div className="flex items-start gap-3">
+        <span className="flex items-center justify-center w-11 h-11 shrink-0 rounded-xl bg-green-100 text-green-800">
+          <Icon name={menu ? "pencil" : "plus"} className="w-6 h-6" />
+        </span>
+        <div>
         <h2 className="text-xl font-semibold text-stone-900">{menu ? `Customize ${menu.name}` : "New menu"}</h2>
-        <p className="mt-1 text-sm text-stone-600">
+        <p className="mt-0.5 text-base text-stone-600">
           {menu ? "Create a custom copy. The original menu will remain unchanged." : "Choose a name and dishes for the new menu."}
         </p>
+        </div>
       </div>
 
       <label className="block text-sm font-medium text-stone-700">
@@ -64,14 +71,18 @@ export default function MenuEditor({ menu, dishes, onSave, onNewDish }: MenuEdit
           maxLength={100}
           value={name}
           onChange={(event) => { setName(event.target.value); setError(null); }}
-          className="mt-1 block w-full rounded-lg border border-stone-300 bg-white px-3 py-2"
+          className={`mt-1 block w-full ${inputBase}`}
           placeholder="e.g. Vegetarian with tomini"
         />
       </label>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-lg font-semibold">Courses</h3>
-        <button type="button" onClick={onNewDish} className="rounded border border-green-700 px-3 py-1.5 text-sm font-medium text-green-800 hover:bg-green-50">
+        <h3 className="flex items-center gap-2 text-lg font-semibold text-stone-900">
+          <Icon name="tables" className="w-5 h-5 text-green-700" />
+          Courses
+          <span className="rounded-full bg-stone-100 px-2 py-0.5 text-sm font-medium text-stone-600">{courses.length}</span>
+        </h3>
+        <button type="button" onClick={onNewDish} className="rounded-lg border border-green-700 px-4 py-2 text-sm font-medium text-green-800 transition-colors hover:bg-green-50 cursor-pointer">
           + Define new dish
         </button>
       </div>
@@ -79,49 +90,58 @@ export default function MenuEditor({ menu, dishes, onSave, onNewDish }: MenuEdit
         {courses.map((id, index) => {
           const dish = dishes.find((item) => item.id === id);
           return (
-            <li key={index} className="flex items-start gap-3">
-              <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-stone-100 font-semibold text-stone-700">{index + 1}</span>
+            <li key={index} className="flex items-start gap-3 rounded-xl p-1 transition-colors hover:bg-stone-50">
+              <span aria-hidden="true" className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl font-bold transition-colors ${dish ? "bg-linear-to-br from-green-600 to-green-800 text-white shadow-sm" : "bg-stone-100 text-stone-500"}`}>{index + 1}</span>
               <div className="min-w-0 flex-1">
                 <select
                   aria-label={`Course ${index + 1}`}
                   value={id ?? ""}
                   onChange={(event) => setCourse(index, event.target.value)}
-                  className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-800"
+                  className={`w-full ${inputBase} cursor-pointer`}
                 >
                   <option value="">— No dish —</option>
                   {dishes.filter((item) => item.id === id || !selected.includes(item.id)).map((item) => (
                     <option key={item.id} value={item.id}>{item.name} ({item.course.toLowerCase()})</option>
                   ))}
                 </select>
-                {dish?.description && <p className="mt-1 text-xs text-stone-500">{dish.description}</p>}
+                {dish?.description && <p className="mt-1 pl-1 text-sm text-stone-500">{dish.description}</p>}
               </div>
               {courses.length > MIN_COURSES && (
                 <button
                   type="button"
                   aria-label={`Remove course ${index + 1}`}
                   onClick={() => setCourses((current) => current.filter((_, pos) => pos !== index))}
-                  className="rounded px-2 py-2 text-sm text-stone-500 hover:bg-stone-100"
-                >Remove</button>
+                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2.5 text-sm text-stone-500 transition-colors hover:bg-red-50 hover:text-red-700 cursor-pointer"
+                >
+                  <Icon name="trash" className="w-4 h-4" />
+                  Remove
+                </button>
               )}
             </li>
           );
         })}
       </ol>
       {courses.length < MAX_COURSES && (
-        <button type="button" onClick={() => setCourses((current) => [...current, null])} className="text-sm font-medium text-green-800 hover:underline">
+        <button type="button" onClick={() => setCourses((current) => [...current, null])} className="w-full rounded-xl border-2 border-dashed border-stone-300 px-4 py-2.5 text-sm font-medium text-green-800 transition-colors hover:border-green-500 hover:bg-green-50 cursor-pointer">
           + Add course
         </button>
       )}
-      <p className="text-xs text-amber-800">
+      <p className="flex items-start gap-2 text-sm text-amber-800">
+        <Icon name="info" className="w-4 h-4 mt-0.5" />
         Course positions are for editing only: the current backend saves dish associations, not their order.
       </p>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 pt-4">
-        <span className="text-sm text-stone-600">{selected.length} selected {selected.length === 1 ? "dish" : "dishes"}</span>
-        <button type="submit" disabled={!valid || saving} className="rounded-lg bg-green-700 px-5 py-2.5 font-medium text-white hover:bg-green-800 disabled:cursor-not-allowed disabled:bg-stone-300">
+        <span className="text-base text-stone-600"><span className="text-2xl font-semibold text-stone-900">{selected.length}</span> selected {selected.length === 1 ? "dish" : "dishes"}</span>
+        <button type="submit" disabled={!valid || saving} className={primaryButton}>
           {saving ? "Saving…" : menu ? "Save as custom menu" : "Create menu"}
         </button>
       </div>
-      {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+      {error && (
+        <p role="alert" className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
+          <Icon name="warning" className="w-5 h-5" />
+          {error}
+        </p>
+      )}
     </form>
   );
 }

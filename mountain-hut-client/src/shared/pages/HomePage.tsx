@@ -7,11 +7,12 @@ import foto1 from "../assets/Foto1MountainHut.jpeg";
 import foto2 from "../assets/Foto2MountainHut.jpeg";
 import foto3 from "../assets/Foto3MountainHut.jpeg";
 import videoHut from "../assets/VideoMountainHut.mp4";
+import Icon, { type IconName } from "../components/Icon.tsx";
 
 type CarouselSlide = {
   type: "image" | "video";
   src: string;
-  icon: string;
+  icon: IconName;
   badge: string;
   title?: string;
   description?: string;
@@ -22,7 +23,7 @@ const carouselSlides: CarouselSlide[] = [
   {
     type: "image",
     src: foto1,
-    icon: "🍽️",
+    icon: "clock",
     badge: "Hours & Services",
     title: "Meal Services & Flexible Slots",
     description:
@@ -32,7 +33,7 @@ const carouselSlides: CarouselSlide[] = [
   {
     type: "image",
     src: foto2,
-    icon: "🪵",
+    icon: "users",
     badge: "Atmosphere",
     title: "Convivial Shared Tables",
     description:
@@ -42,7 +43,7 @@ const carouselSlides: CarouselSlide[] = [
   {
     type: "image",
     src: foto3,
-    icon: "🛡️",
+    icon: "shield",
     badge: "Health & Safety",
     title: "Dietary Needs & Allergy Care",
     description:
@@ -52,9 +53,16 @@ const carouselSlides: CarouselSlide[] = [
   {
     type: "video",
     src: videoHut,
-    icon: "🎥",
+    icon: "sun",
     badge: "Hut's Life",
   },
+];
+
+const HOW_IT_WORKS: { icon: IconName; title: string; text: string }[] = [
+  { icon: "calendar", title: "Select Slot", text: "Pick your preferred date, lunch or dinner time slot." },
+  { icon: "users", title: "Party & Needs", text: "Indicate group size, dietary preferences, and allergy alerts." },
+  { icon: "tables", title: "Instant Allocation", text: "Our system assigns the optimal table arrangement." },
+  { icon: "mail", title: "Confirmation Email", text: "Receive your booking reference and summary via email." },
 ];
 
 export default function HomePage() {
@@ -183,10 +191,10 @@ export default function HomePage() {
 
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-left text-sm text-amber-900 space-y-2">
               <div className="flex items-start gap-2.5">
-                <span className="text-xl leading-none">✉️</span>
+                <Icon name="mail" className="w-6 h-6 text-amber-700" />
                 <div>
                   <p className="font-semibold text-amber-950">Password change required</p>
-                  <p className="text-xs text-amber-800 mt-0.5">
+                  <p className="text-sm text-amber-800 mt-0.5">
                     An employee registered your temporary account. We sent a secure link to{" "}
                     <strong>{user.email}</strong>. You must set a permanent password before booking.
                   </p>
@@ -194,7 +202,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-center gap-2 text-xs text-stone-500 py-1">
+            <div className="flex items-center justify-center gap-2 text-sm text-stone-500 py-1">
               <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
               <span>Waiting for password change… this page will update automatically.</span>
             </div>
@@ -202,7 +210,7 @@ export default function HomePage() {
             {resendStatus && (
               <div
                 role="status"
-                className="text-xs rounded-lg p-2.5 bg-green-50 text-green-800 border border-green-200"
+                className="text-sm rounded-lg p-2.5 bg-green-50 text-green-800 border border-green-200 animate-pop-in"
               >
                 {resendStatus}
               </div>
@@ -224,15 +232,16 @@ export default function HomePage() {
                     setResending(false);
                   }
                 }}
-                className="w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-semibold text-green-700 bg-green-50 hover:bg-green-100 rounded-lg border border-green-300 transition-colors cursor-pointer"
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-base font-semibold text-green-700 bg-green-50 hover:bg-green-100 rounded-xl border border-green-300 transition-colors cursor-pointer"
               >
+                <Icon name="mail" className="w-5 h-5" />
                 {resending ? "Sending…" : "Resend email link"}
               </button>
 
               <button
                 type="button"
                 onClick={() => logout()}
-                className="w-full text-xs text-stone-500 hover:text-stone-800 underline cursor-pointer"
+                className="w-full text-sm text-stone-500 hover:text-stone-800 underline cursor-pointer"
               >
                 Log out
               </button>
@@ -265,9 +274,10 @@ export default function HomePage() {
 
       {/* Hero Content (First Viewport, Transparent over the fixed image) */}
       <section className="relative z-10 w-full min-h-[calc(100vh-3.5rem)] flex items-center justify-center px-4 py-16">
-        <div className="max-w-4xl mx-auto text-center space-y-6 text-white">
+        <div className="max-w-4xl mx-auto text-center space-y-6 text-white animate-fade-up">
           <div>
-            <span className="inline-block px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-stone-200 bg-white/20 backdrop-blur-xs rounded-full border border-white/30 shadow-sm">
+            <span className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-stone-200 bg-white/20 backdrop-blur-xs rounded-full border border-white/30 shadow-sm">
+              <Icon name="pin" className="w-4 h-4" />
               High Altitude Hut • 2,354 m
             </span>
           </div>
@@ -285,9 +295,11 @@ export default function HomePage() {
             <div className="flex flex-col items-center justify-center gap-4 pt-4">
               <Link
                 to="/booking"
-                className="inline-flex items-center justify-center px-6 py-3.5 text-base font-semibold text-white bg-white/20 hover:bg-white/30 backdrop-blur-xs border border-white/30 rounded-lg shadow-lg transition-colors"
+                className="group inline-flex items-center justify-center gap-2 px-7 py-3.5 text-base font-semibold text-white bg-white/20 hover:bg-white/30 backdrop-blur-xs border border-white/30 rounded-xl shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl"
               >
+                <Icon name="calendar" className="w-5 h-5" />
                 {user ? "Check Availability & Book Your Table" : "Check Availability"}
+                <Icon name="chevronRight" className="w-5 h-5 transition-transform group-hover:translate-x-1" />
               </Link>
               <span className="inline-flex items-center justify-center gap-1.5 px-6 py-3.5 text-base font-semibold italic text-white">
                 Easier than that it&apos;s impossible{' '}
@@ -296,6 +308,14 @@ export default function HomePage() {
             </div>
           )}
         </div>
+
+        {/* Hint that the page goes on below the photo */}
+        <span
+          aria-hidden="true"
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center justify-center w-10 h-10 rounded-full border border-white/40 bg-white/10 text-white backdrop-blur-xs animate-bounce"
+        >
+          <Icon name="chevronRight" className="w-5 h-5 rotate-90" />
+        </span>
       </section>
 
       {/* Subsequent Sections (Solid Opaque White Background that slides over the fixed hero) */}
@@ -305,10 +325,10 @@ export default function HomePage() {
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-semibold uppercase tracking-wider text-green-700">
+                <span className="text-sm font-semibold uppercase tracking-wider text-green-700">
                   Discover Our Hut
                 </span>
-                <h2 className="text-2xl font-bold text-stone-900">
+                <h2 className="text-2xl sm:text-3xl font-bold text-stone-900">
                   Experience & Dining Guidelines
                 </h2>
               </div>
@@ -317,23 +337,23 @@ export default function HomePage() {
                   type="button"
                   onClick={prevSlide}
                   aria-label="Previous slide"
-                  className="w-10 h-10 rounded-full bg-stone-100 hover:bg-stone-200 border border-stone-300 flex items-center justify-center text-stone-700 transition-colors shadow-xs cursor-pointer"
+                  className="w-11 h-11 rounded-full bg-white hover:bg-green-50 hover:text-green-800 hover:border-green-600 border border-stone-300 flex items-center justify-center text-stone-700 transition-all shadow-xs active:scale-95 cursor-pointer"
                 >
-                  ◀
+                  <Icon name="chevronLeft" className="w-5 h-5" />
                 </button>
                 <button
                   type="button"
                   onClick={nextSlide}
                   aria-label="Next slide"
-                  className="w-10 h-10 rounded-full bg-stone-100 hover:bg-stone-200 border border-stone-300 flex items-center justify-center text-stone-700 transition-colors shadow-xs cursor-pointer"
+                  className="w-11 h-11 rounded-full bg-white hover:bg-green-50 hover:text-green-800 hover:border-green-600 border border-stone-300 flex items-center justify-center text-stone-700 transition-all shadow-xs active:scale-95 cursor-pointer"
                 >
-                  ▶
+                  <Icon name="chevronRight" className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
             <div
-              className="overflow-hidden rounded-2xl border border-stone-200 bg-stone-50 shadow-md"
+              className="overflow-hidden rounded-3xl border border-stone-200 bg-stone-50 shadow-lg"
               onMouseEnter={() => setIsPaused(true)}
               onMouseLeave={() => setIsPaused(false)}
             >
@@ -350,7 +370,7 @@ export default function HomePage() {
                   />
                   <div className="absolute top-4 left-4 z-20">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white bg-black/60 backdrop-blur-xs rounded-full border border-white/20">
-                      <span>{slide.icon}</span>
+                      <Icon name={slide.icon} className="w-4 h-4" />
                       <span>{slide.badge}</span>
                     </span>
                   </div>
@@ -391,14 +411,14 @@ export default function HomePage() {
                     )}
                     <div className="absolute top-4 left-4 z-20">
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white bg-black/50 backdrop-blur-xs rounded-full border border-white/20">
-                        <span>{slide.icon}</span>
+                        <Icon name={slide.icon} className="w-4 h-4" />
                         <span>{slide.badge}</span>
                       </span>
                     </div>
                   </div>
 
                   {/* Information associated with the current slide */}
-                  <div className="p-8 md:p-12 flex flex-col justify-center min-h-[360px] md:min-h-[460px] space-y-6">
+                  <div key={currentSlide} className="p-8 md:p-12 flex flex-col justify-center min-h-[360px] md:min-h-[460px] space-y-6 animate-fade-up">
                     <div className="space-y-4">
                       <h3 className="text-2xl sm:text-3xl font-extrabold text-stone-900 leading-snug min-h-[4rem] sm:min-h-[4.5rem] flex items-center">
                         {slide.title}
@@ -409,7 +429,7 @@ export default function HomePage() {
                     </div>
 
                     <div className="space-y-4 pt-4 border-t border-stone-200">
-                      <div className="text-xs font-medium text-stone-500">
+                      <div className="text-sm font-medium text-stone-500">
                         {slide.note}
                       </div>
 
@@ -437,51 +457,40 @@ export default function HomePage() {
           </section>
 
           {/* How it works (Step by step for hikers) */}
-          <section className="bg-stone-50 rounded-xl border border-stone-200 p-8 shadow-xs">
-            <h2 className="text-xl font-bold text-stone-900 mb-8 text-center">
-              How to Book Your Mountain Meal
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 text-center">
-              <div className="space-y-2">
-                <div className="w-8 h-8 rounded-full bg-green-700 text-white font-bold flex items-center justify-center mx-auto text-sm">
-                  1
-                </div>
-                <div className="font-semibold text-stone-800 text-sm">Select Slot</div>
-                <p className="text-xs text-stone-500">
-                  Pick your preferred date, lunch or dinner time slot.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <div className="w-8 h-8 rounded-full bg-green-700 text-white font-bold flex items-center justify-center mx-auto text-sm">
-                  2
-                </div>
-                <div className="font-semibold text-stone-800 text-sm">Party & Needs</div>
-                <p className="text-xs text-stone-500">
-                  Indicate group size, dietary preferences, and allergy alerts.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <div className="w-8 h-8 rounded-full bg-green-700 text-white font-bold flex items-center justify-center mx-auto text-sm">
-                  3
-                </div>
-                <div className="font-semibold text-stone-800 text-sm">Instant Allocation</div>
-                <p className="text-xs text-stone-500">
-                  Our system assigns the optimal table arrangement.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <div className="w-8 h-8 rounded-full bg-green-700 text-white font-bold flex items-center justify-center mx-auto text-sm">
-                  4
-                </div>
-                <div className="font-semibold text-stone-800 text-sm">Confirmation Email</div>
-                <p className="text-xs text-stone-500">
-                  Receive your booking reference and summary via email.
-                </p>
-              </div>
+          <section className="rounded-3xl border border-stone-200 bg-linear-to-br from-stone-50 to-green-50/40 p-8 sm:p-10 shadow-xs">
+            <div className="mb-10 text-center space-y-1">
+              <span className="text-sm font-semibold uppercase tracking-wider text-green-700">
+                Four easy steps
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-bold text-stone-900">
+                How to Book Your Mountain Meal
+              </h2>
             </div>
+            <ol className="relative grid grid-cols-1 sm:grid-cols-4 gap-8 text-center">
+              {/* dashed trail joining the steps */}
+              <span
+                aria-hidden="true"
+                className="hidden sm:block absolute top-8 left-[12.5%] right-[12.5%] border-t-2 border-dashed border-green-300"
+              />
+              {HOW_IT_WORKS.map((step, index) => (
+                <li
+                  key={step.title}
+                  style={{ animationDelay: `${index * 100}ms` }}
+                  className="group relative space-y-3 animate-fade-up"
+                >
+                  <div className="relative mx-auto w-16 h-16">
+                    <span className="flex items-center justify-center w-16 h-16 rounded-2xl bg-white text-green-700 border border-green-200 shadow-sm transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-md group-hover:bg-green-700 group-hover:text-white">
+                      <Icon name={step.icon} className="w-8 h-8" />
+                    </span>
+                    <span className="absolute -top-2 -right-2 flex items-center justify-center w-7 h-7 rounded-full bg-green-700 text-white text-sm font-bold ring-4 ring-stone-50">
+                      {index + 1}
+                    </span>
+                  </div>
+                  <div className="font-semibold text-stone-900 text-base">{step.title}</div>
+                  <p className="text-sm text-stone-600">{step.text}</p>
+                </li>
+              ))}
+            </ol>
           </section>
         </div>
       </div>

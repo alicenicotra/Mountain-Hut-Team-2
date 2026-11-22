@@ -16,7 +16,7 @@ export default function TimeField({ label, value, onChange, listId }: TimeFieldP
   const invalid = !editing && value !== "" && normalizeTime(value) === null;
 
   return (
-    <label className="flex flex-col text-sm text-stone-700">
+    <label className="flex flex-col gap-1.5 text-base font-medium text-stone-700">
       {label}
       <input
         type="text"
@@ -33,11 +33,13 @@ export default function TimeField({ label, value, onChange, listId }: TimeFieldP
           onChange(normalizeTime(value) ?? value);
         }}
         aria-invalid={invalid}
-        className={`w-28 border rounded px-3 py-2 text-lg bg-white ${
-          invalid ? "border-red-500" : "border-stone-300 hover:border-green-600"
+        className={`w-32 border rounded-lg px-3 py-2 text-lg font-medium bg-white shadow-xs transition-colors focus:outline-hidden focus:ring-2 ${
+          invalid
+            ? "border-red-500 focus:ring-red-500/25"
+            : "border-stone-300 hover:border-green-600 focus:border-green-600 focus:ring-green-600/25"
         }`}
       />
-      {invalid && <span className="text-xs text-red-600">e.g. 12:30</span>}
+      {invalid && <span className="text-sm font-normal text-red-600">e.g. 12:30</span>}
     </label>
   );
 }

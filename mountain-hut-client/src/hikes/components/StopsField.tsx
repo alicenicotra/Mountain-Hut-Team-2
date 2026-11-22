@@ -1,5 +1,6 @@
 import { useState, type KeyboardEvent } from "react";
 import { MAX_POINT_LENGTH, MAX_POINTS } from "../utils/hike-time.ts";
+import Icon from "../../shared/components/Icon.tsx";
 
 interface StopsFieldProps {
   points: string[];
@@ -30,8 +31,9 @@ export default function StopsField({ points, onChange, inputClass }: StopsFieldP
     <div>
       <label
         htmlFor="intermediatePoint"
-        className="block text-xs font-semibold uppercase tracking-wider text-green-700 mb-1.5"
+        className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-green-700 mb-1.5"
       >
+        <Icon name="pin" className="w-5 h-5" />
         Stops along the way (optional)
       </label>
       <div className="flex gap-2">
@@ -49,8 +51,9 @@ export default function StopsField({ points, onChange, inputClass }: StopsFieldP
           type="button"
           onClick={add}
           disabled={!value || full}
-          className="rounded-lg border border-stone-300 bg-white px-4 text-sm font-semibold text-stone-700 transition-colors hover:border-green-600 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-stone-300 bg-white px-4 text-base font-semibold text-stone-700 transition-colors hover:border-green-600 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
         >
+          <Icon name="plus" className="w-4 h-4" />
           Add
         </button>
       </div>
@@ -60,23 +63,23 @@ export default function StopsField({ points, onChange, inputClass }: StopsFieldP
           {points.map((point, i) => (
             <li
               key={`${i}-${point}`}
-              className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 py-0.5 pl-3 pr-1 text-sm text-green-900"
+              className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 py-0.5 pl-3 pr-1 text-base text-green-900 animate-pop-in"
             >
               <span>{i + 1}. {point}</span>
               <button
                 type="button"
                 aria-label={`Remove ${point}`}
                 onClick={() => onChange(points.filter((_, j) => j !== i))}
-                className="rounded-full px-1.5 text-green-700 hover:bg-green-100 cursor-pointer"
+                className="flex items-center justify-center w-6 h-6 rounded-full text-green-700 transition-colors hover:bg-green-100 cursor-pointer"
               >
-                ×
+                <Icon name="close" className="w-4 h-4" />
               </button>
             </li>
           ))}
         </ol>
       )}
 
-      <p className="mt-1 text-xs text-stone-500">
+      <p className="mt-1 text-sm text-stone-500">
         {full
           ? `You can add up to ${MAX_POINTS} stops.`
           : "Press Enter or Add after each stop, in the order you'll pass them."}
