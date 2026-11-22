@@ -8,7 +8,6 @@ import {
   validatorCompiler,
 } from "fastify-type-provider-zod";
 
-<<<<<<< HEAD
 import { UserRepository } from "#src/users/user-repository";
 import { allergenRoutes } from "#src/menus/allergens/allergen-routes";
 import { authRoutes } from "#src/auth/auth-routes";
@@ -24,20 +23,7 @@ import { menuRoutes } from "#src/menus/menu-routes";
 import { slotRoutes } from "#src/slots/slot-routes";
 import { staffBookingRoutes } from "#src/booking/routes/staff-booking-routes";
 import { userRoutes } from "#src/users/user-routes";
-=======
-import { env } from "./config.ts";
-import { slotRoutes } from "./slots/slot-routes.ts";
-import { userRoutes } from "./users/user-routes.ts";
-import { UserRepository } from "./users/user-repository.ts";
-import { availabilityRoutes } from "./booking/routes/availability-routes.ts";
-import { bookingRoutes } from "./booking/routes/booking-routes.ts";
-import { staffBookingRoutes } from "./booking/routes/staff-booking-routes.ts";
-import { changeBookingRoutes } from "./booking/routes/change-booking-routes.ts";
-import { cancelBookingRoutes } from "./booking/routes/cancel-booking-routes.ts";
-import { allergenRoutes } from "./allergens/allergen-routes.ts";
-import { authRoutes } from "./auth/auth-routes.ts";
-import { hikeRoutes } from "./hikes/hike-routes.ts";
->>>>>>> origin/feature/MH-116-employee-menu-selection
+
 
 export function buildApp(opts: FastifyServerOptions = {}) {
   const server = Fastify({
