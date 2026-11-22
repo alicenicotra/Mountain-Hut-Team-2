@@ -1,10 +1,10 @@
-# 🏔️ Mountain Hut Reservation System
+# Mountain Hut
 
 Welcome to the **Mountain Hut** web application! This platform lets hikers book meals and register mountain hikes, while allowing hut staff to manage dining slots, tables, and daily menus.
 
 ---
 
-## 🚀 How to Run the App
+## How to Run the App
 
 You can run the entire system in **one command using Docker** (recommended), or run it **locally with Node.js**.
 
@@ -50,7 +50,7 @@ Now open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
-## 👤 Sample Accounts to Test
+## Sample Accounts to Test
 
 The system comes pre-seeded with ready-to-use accounts:
 
@@ -63,7 +63,7 @@ The system comes pre-seeded with ready-to-use accounts:
 
 ---
 
-## 🎯 Main Features
+## Main Features
 
 ### For Hikers:
 - **Table Booking:** Check live seat availability by date and party size, select dining times, and specify dietary/allergen requirements.
@@ -77,7 +77,7 @@ The system comes pre-seeded with ready-to-use accounts:
 
 ---
 
-## 🧪 Running Tests (Optional)
+## Running Tests (Optional)
 
 To verify the codebase:
 
