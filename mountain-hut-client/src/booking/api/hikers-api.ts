@@ -1,8 +1,10 @@
 import { ApiError, apiFetch } from "../../shared/api/client.ts";
-import type { UserType } from "../../auth/types/auth.ts";
-import type { HikerMatch } from "../types/hiker.ts";
+import type { CreatedHiker, HikerMatch, NewHiker } from "../types/hiker.ts";
 
-type UserMatch = HikerMatch & { type: UserType };
+type UserMatch = HikerMatch & { type: string };
+
+// Hikers with an account, and the ones the staff created at the hut (MH-07)
+const HIKER_TYPES = ["HIKER", "TEMPORARY", "THROWAWAY"];
 
 // The API matches whole values only, each in its own parameter, so what to ask
 // depends on what was typed. "Mario Rossi" could also be typed "Rossi Mario"
@@ -34,6 +36,14 @@ export async function searchHikers(query: string): Promise<HikerMatch[]> {
   const results = await Promise.all(queriesFor(query.trim()).map(findUsers));
   // The same person can match more than one query
   const users = new Map(results.flat().map((user) => [user.id, user]));
-  // Only hikers can have a booking
-  return [...users.values()].filter((user) => user.type === "HIKER");
+  // Only hikers can have a booking, not the staff
+  return [...users.values()].filter((user) => HIKER_TYPES.includes(user.type));
+}
+
+// POST /api/v1/users (staff only): a hiker who has no account yet
+export function createHiker(hiker: NewHiker): Promise<CreatedHiker> {
+  return apiFetch<CreatedHiker>("/users", {
+    method: "POST",
+    body: JSON.stringify(hiker),
+  });
 }

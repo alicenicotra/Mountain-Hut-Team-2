@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import EmployeeReservationPage from '../../../src/booking/pages/EmployeeReservationPage.tsx'
 import { getAvailability } from '../../../src/booking/api/availability-api.ts'
 import { createStaffBooking } from '../../../src/booking/api/bookings-api.ts'
-import { searchHikers } from '../../../src/booking/api/hikers-api.ts'
+import { createHiker, searchHikers } from '../../../src/booking/api/hikers-api.ts'
 import { ApiError } from '../../../src/shared/api/client.ts'
 import type { SlotAvailability } from '../../../src/booking/types/availability.ts'
 import type { BookingResult } from '../../../src/booking/types/booking.ts'
@@ -13,7 +13,10 @@ import type { HikerMatch } from '../../../src/booking/types/hiker.ts'
 // Only the calls to the backend are replaced: the page logic is the real one
 vi.mock('../../../src/booking/api/availability-api.ts', () => ({ getAvailability: vi.fn() }))
 vi.mock('../../../src/booking/api/bookings-api.ts', () => ({ createStaffBooking: vi.fn() }))
-vi.mock('../../../src/booking/api/hikers-api.ts', () => ({ searchHikers: vi.fn() }))
+vi.mock('../../../src/booking/api/hikers-api.ts', () => ({
+  searchHikers: vi.fn(),
+  createHiker: vi.fn(),
+}))
 
 const TODAY = '2026-11-04'
 const TOMORROW = '2026-11-05'
@@ -304,23 +307,6 @@ describe('EmployeeReservationPage', () => {
       expect(await screen.findByText('Error: Search is down')).toBeInTheDocument()
     })
 
-    it.each([
-      ['New account', ['Full name', 'Email', 'Mobile number', 'Emergency contact (optional)', 'Notes (optional)']],
-      ['Just a name', ['Name', 'Phone (optional)']],
-    ])('shows "%s" as not available yet', async (label, fields) => {
-      mockSlots(slot())
-      const user = renderPage()
-      await user.click(await dinner())
-
-      await user.click(screen.getByRole('button', { name: label }))
-
-      expect(screen.getByText('Not available yet')).toBeInTheDocument()
-      for (const field of fields) {
-        expect(screen.getByLabelText(field)).toBeDisabled()
-      }
-      expect(reserveButton()).toBeDisabled()
-    })
-
     it('does not reserve for the chosen hiker while another option is open', async () => {
       mockSlots(slot())
       const user = renderPage()
@@ -425,6 +411,153 @@ describe('EmployeeReservationPage', () => {
       expect(sending).toBeDisabled()
       await user.click(sending)
       expect(createStaffBooking).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  // MH-07 clarifications: a hiker missing from the system can get a full
+  // account (random password, to change at the first login) or just a name
+  describe('new hiker', () => {
+    const anna = {
+      id: 20,
+      name: 'Anna',
+      surname: 'Bianchi',
+      email: 'anna.bianchi@example.com',
+      phoneNumber: '+393331112223',
+    }
+    const luigi = { id: 21, name: 'Luigi', surname: null, email: null, phoneNumber: null }
+
+    async function fillAccount(user: User) {
+      await user.click(await dinner())
+      await user.click(screen.getByRole('button', { name: 'New account' }))
+      await user.type(screen.getByLabelText('Name'), ' Anna ')
+      await user.type(screen.getByLabelText('Surname'), 'Bianchi')
+      await user.type(screen.getByLabelText('Email'), 'anna.bianchi@example.com')
+      await user.type(screen.getByLabelText('Mobile number'), '+393331112223')
+    }
+
+    it('asks all the details of a new account before reserving', async () => {
+      mockSlots(slot())
+      const user = renderPage()
+      await user.click(await dinner())
+      await user.click(screen.getByRole('button', { name: 'New account' }))
+
+      await user.type(screen.getByLabelText('Name'), 'Anna')
+      await user.type(screen.getByLabelText('Surname'), 'Bianchi')
+      await user.type(screen.getByLabelText('Email'), 'anna.bianchi@example.com')
+      expect(reserveButton()).toBeDisabled()
+
+      await user.type(screen.getByLabelText('Mobile number'), '   ')
+      expect(reserveButton()).toBeDisabled()
+
+      await user.type(screen.getByLabelText('Mobile number'), '+393331112223')
+      expect(reserveButton()).toBeEnabled()
+    })
+
+    it('creates the account, reserves for it and shows the password to tell the hiker', async () => {
+      mockSlots(slot())
+      vi.mocked(createHiker).mockResolvedValue({ ...anna, temporaryPassword: 'k3Q9-xY7p' })
+      vi.mocked(createStaffBooking).mockResolvedValue({ ...booking, userId: 20 })
+      const user = renderPage()
+      await fillAccount(user)
+
+      await user.click(reserveButton())
+
+      expect(createHiker).toHaveBeenCalledWith({
+        type: 'TEMPORARY',
+        name: 'Anna',
+        surname: 'Bianchi',
+        email: 'anna.bianchi@example.com',
+        phoneNumber: '+393331112223',
+      })
+      expect(createStaffBooking).toHaveBeenCalledWith({ hikerId: 20, slotId: 1, partySize: 2 })
+      expect(await screen.findByText('✓ Reservation confirmed')).toBeInTheDocument()
+      expect(screen.getByText(/Anna Bianchi · 2 people/)).toBeInTheDocument()
+      expect(screen.getByText('k3Q9-xY7p')).toBeInTheDocument()
+      expect(screen.getByText(/change it at their first login/)).toBeInTheDocument()
+      expect(screen.getByText(/sent to anna\.bianchi@example\.com/)).toBeInTheDocument()
+    })
+
+    it('needs only a name for a hiker without an account', async () => {
+      mockSlots(slot())
+      vi.mocked(createHiker).mockResolvedValue(luigi)
+      vi.mocked(createStaffBooking).mockResolvedValue({ ...booking, userId: 21 })
+      const user = renderPage()
+      await user.click(await dinner())
+      await user.click(screen.getByRole('button', { name: 'Just a name' }))
+      expect(reserveButton()).toBeDisabled()
+
+      await user.type(screen.getByLabelText('Name'), 'Luigi')
+      await user.click(reserveButton())
+
+      expect(createHiker).toHaveBeenCalledWith({ type: 'THROWAWAY', name: 'Luigi' })
+      expect(createStaffBooking).toHaveBeenCalledWith({ hikerId: 21, slotId: 1, partySize: 2 })
+      expect(await screen.findByText('✓ Reservation confirmed')).toBeInTheDocument()
+      expect(screen.getByText(/Luigi\s+· 2 people/)).toBeInTheDocument()
+      expect(screen.queryByText(/Temporary password/)).not.toBeInTheDocument()
+    })
+
+    it('sends the phone of a hiker without an account, when given', async () => {
+      mockSlots(slot())
+      vi.mocked(createHiker).mockResolvedValue({ ...luigi, phoneNumber: '+393339998887' })
+      vi.mocked(createStaffBooking).mockResolvedValue(booking)
+      const user = renderPage()
+      await user.click(await dinner())
+      await user.click(screen.getByRole('button', { name: 'Just a name' }))
+
+      await user.type(screen.getByLabelText('Name'), 'Luigi')
+      await user.type(screen.getByLabelText('Phone (optional)'), ' +393339998887 ')
+      await user.click(reserveButton())
+
+      expect(createHiker).toHaveBeenCalledWith({
+        type: 'THROWAWAY',
+        name: 'Luigi',
+        phoneNumber: '+393339998887',
+      })
+    })
+
+    it('does not create the hiker twice when the reservation fails and is tried again', async () => {
+      mockSlots(slot())
+      vi.mocked(createHiker).mockResolvedValue({ ...anna, temporaryPassword: 'k3Q9-xY7p' })
+      vi.mocked(createStaffBooking)
+        .mockRejectedValueOnce(new ApiError(409, 'Not enough available seats for this time slot'))
+        .mockResolvedValueOnce({ ...booking, userId: 20 })
+      const user = renderPage()
+      await fillAccount(user)
+
+      await user.click(reserveButton())
+
+      expect(
+        await screen.findByText('Not enough available seats for this time slot'),
+      ).toBeInTheDocument()
+      // The new hiker is now the chosen one, and the password is still shown
+      expect(screen.getByText('Anna Bianchi')).toBeInTheDocument()
+      expect(screen.getByText('k3Q9-xY7p')).toBeInTheDocument()
+
+      await user.click(reserveButton())
+
+      expect(await screen.findByText('✓ Reservation confirmed')).toBeInTheDocument()
+      expect(createHiker).toHaveBeenCalledTimes(1)
+      expect(createStaffBooking).toHaveBeenCalledTimes(2)
+      expect(createStaffBooking).toHaveBeenLastCalledWith({ hikerId: 20, slotId: 1, partySize: 2 })
+      expect(screen.getByText('k3Q9-xY7p')).toBeInTheDocument()
+    })
+
+    it.each([
+      [409, 'An account with this email already exists: find the hiker under Existing hiker.'],
+      [400, 'Some details are not valid: check the email and the phone number.'],
+    ])('explains why the account was not created (%i), without reserving', async (status, message) => {
+      mockSlots(slot())
+      vi.mocked(createHiker).mockRejectedValue(new ApiError(status, 'from the backend'))
+      const user = renderPage()
+      await fillAccount(user)
+
+      await user.click(reserveButton())
+
+      expect(await screen.findByText(message)).toBeInTheDocument()
+      expect(createStaffBooking).not.toHaveBeenCalled()
+      // The details stay, so they can be corrected
+      expect(screen.getByLabelText('Email')).toHaveValue('anna.bianchi@example.com')
+      expect(reserveButton()).toBeEnabled()
     })
   })
 })
