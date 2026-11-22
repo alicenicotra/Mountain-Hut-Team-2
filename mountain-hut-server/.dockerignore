@@ -1,9 +1,14 @@
 node_modules
-npm-debug.log
+npm-debug.log*
 dist
-.env
-local.db
-local.db-journal
-local.db-shm
-local.db-wal
+.env*
+local.db*
 coverage
+
+# Dev / git files
+tests
+vitest.config.ts
+tsconfig.tsbuildinfo
+.git
+.gitignore
+README.md
