@@ -37,140 +37,178 @@ export async function createBooking(input: CreateBookingInput) {
   const { userId, slotId, partySize, allowStaffLateBooking = false } = input;
 
   // Ensure the read/check/write sequence is contained in one transaction.
-  return db.transaction(async (tx) => {
-    const [user] = await tx.select().from(usersTable)
-      .where(eq(usersTable.id, userId)).limit(1);
-    if (!user) throw new BookingError(404, "User not found");
-    if (user.type !== "HIKER") {
-      throw new BookingError(403, "Only hikers can book tables");
-    }
+  return db.transaction(
+    async (tx) => {
+      const [user] = await tx
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, userId))
+        .limit(1);
+      if (!user) throw new BookingError(404, "User not found");
 
-    const [slot] = await tx.select().from(timeSlotTable)
-      .where(eq(timeSlotTable.id, slotId)).limit(1);
-    if (!slot) throw new BookingError(404, "Time slot not found");
-
-    // MH-01: hikers retain the two-hour cutoff; authenticated staff can book
-    // until the start of the slot, using the hut-local Europe/Rome clock.
-    if (allowStaffLateBooking) {
-      if (Date.now() >= hutSlotStartMs(slot.date, slot.from)) {
-        throw new BookingError(409, "Time slot has already started");
+      const allowedTypes = ["HIKER", "TEMPORARY", "THROWAWAY"];
+      if (!allowedTypes.includes(user.type)) {
+        throw new BookingError(403, `${user.type}s can't book tables.`);
       }
-    } else if (!isSlotBookable(slot.date, slot.from)) {
-      throw new BookingError(409, "Booking deadline has passed (2 hours before the slot)");
-    }
 
-    // MH-01: one active booking per hiker for each slot on a given date.
-    const [existingBooking] = await tx.select({ id: reservationsTable.id })
-      .from(reservationsTable)
-      .where(and(
-        eq(reservationsTable.userId, userId),
-        eq(reservationsTable.slotId, slotId),
-        ne(reservationsTable.status, "CANCELED"),
-      ))
-      .limit(1);
-    if (existingBooking) {
-      throw new BookingError(409, "You already have a booking for this time slot");
-    }
+      const [slot] = await tx
+        .select()
+        .from(timeSlotTable)
+        .where(eq(timeSlotTable.id, slotId))
+        .limit(1);
+      if (!slot) throw new BookingError(404, "Time slot not found");
 
-    const rawAllergenIds = input.allergenIds ?? [];
-    const uniqueAllergenIds = Array.from(new Set(rawAllergenIds));
-    let matchingAllergens: Array<{ id: number; name: string }> = [];
+      // MH-01: hikers retain the two-hour cutoff; authenticated staff can book
+      // until the start of the slot, using the hut-local Europe/Rome clock.
+      if (allowStaffLateBooking) {
+        if (Date.now() >= hutSlotStartMs(slot.date, slot.from)) {
+          throw new BookingError(409, "Time slot has already started");
+        }
+      } else if (!isSlotBookable(slot.date, slot.from)) {
+        throw new BookingError(
+          409,
+          "Booking deadline has passed (2 hours before the slot)",
+        );
+      }
 
-    if (uniqueAllergenIds.length > 0) {
-      matchingAllergens = await tx
+      // MH-01: one active booking per hiker for each slot on a given date.
+      const [existingBooking] = await tx
+        .select({ id: reservationsTable.id })
+        .from(reservationsTable)
+        .where(
+          and(
+            eq(reservationsTable.userId, userId),
+            eq(reservationsTable.slotId, slotId),
+            ne(reservationsTable.status, "CANCELED"),
+          ),
+        )
+        .limit(1);
+      if (existingBooking) {
+        throw new BookingError(
+          409,
+          "You already have a booking for this time slot",
+        );
+      }
+
+      const rawAllergenIds = input.allergenIds ?? [];
+      const uniqueAllergenIds = Array.from(new Set(rawAllergenIds));
+      let matchingAllergens: Array<{ id: number; name: string }> = [];
+
+      if (uniqueAllergenIds.length > 0) {
+        matchingAllergens = await tx
+          .select({
+            id: allergensTable.id,
+            name: allergensTable.name,
+          })
+          .from(allergensTable)
+          .where(inArray(allergensTable.id, uniqueAllergenIds));
+
+        if (matchingAllergens.length !== uniqueAllergenIds.length) {
+          throw new BookingError(400, "One or more allergen IDs are invalid");
+        }
+      }
+
+      const configuredTables = await tx
         .select({
-          id: allergensTable.id,
-          name: allergensTable.name,
+          tableId: tablesTable.id,
+          code: tablesTable.code,
+          seats: tablesTable.seats,
         })
-        .from(allergensTable)
-        .where(inArray(allergensTable.id, uniqueAllergenIds));
+        .from(tableAvailabilityTable)
+        .innerJoin(
+          tablesTable,
+          eq(tableAvailabilityTable.tableId, tablesTable.id),
+        )
+        .where(eq(tableAvailabilityTable.slotId, slotId));
 
-      if (matchingAllergens.length !== uniqueAllergenIds.length) {
-        throw new BookingError(400, "One or more allergen IDs are invalid");
+      const reservations = await tx
+        .select({
+          tableId: reservationsTable.tableId,
+          partySize: reservationsTable.partySize,
+        })
+        .from(reservationsTable)
+        .where(
+          and(
+            eq(reservationsTable.slotId, slotId),
+            ne(reservationsTable.status, "CANCELED"),
+          ),
+        );
+
+      const occupied = new Map<number, number>();
+      for (const reservation of reservations) {
+        occupied.set(
+          reservation.tableId,
+          (occupied.get(reservation.tableId) ?? 0) + reservation.partySize,
+        );
       }
-    }
 
-    const configuredTables = await tx.select({
-      tableId: tablesTable.id,
-      code: tablesTable.code,
-      seats: tablesTable.seats,
-    })
-      .from(tableAvailabilityTable)
-      .innerJoin(tablesTable, eq(tableAvailabilityTable.tableId, tablesTable.id))
-      .where(eq(tableAvailabilityTable.slotId, slotId));
+      const freeTables: FreeTable[] = configuredTables.map((table) => ({
+        tableId: table.tableId,
+        code: table.code,
+        freeSeats: Math.max(
+          0,
+          table.seats - (occupied.get(table.tableId) ?? 0),
+        ),
+      }));
 
-    const reservations = await tx.select({
-      tableId: reservationsTable.tableId,
-      partySize: reservationsTable.partySize,
-    })
-      .from(reservationsTable)
-      .where(and(
-        eq(reservationsTable.slotId, slotId),
-        ne(reservationsTable.status, "CANCELED"),
-      ));
+      const allocation = allocateTables(freeTables, partySize);
+      if (!allocation) {
+        throw new BookingError(
+          409,
+          "Not enough available seats for this time slot",
+        );
+      }
 
-    const occupied = new Map<number, number>();
-    for (const reservation of reservations) {
-      occupied.set(
-        reservation.tableId,
-        (occupied.get(reservation.tableId) ?? 0) + reservation.partySize,
-      );
-    }
+      const description = input.description?.trim()
+        ? input.description.trim()
+        : null;
 
-    const freeTables: FreeTable[] = configuredTables.map((table) => ({
-      tableId: table.tableId,
-      code: table.code,
-      freeSeats: Math.max(0, table.seats - (occupied.get(table.tableId) ?? 0)),
-    }));
+      const created = await tx
+        .insert(reservationsTable)
+        .values(
+          allocation.map((assignment) => ({
+            userId,
+            slotId,
+            tableId: assignment.tableId,
+            partySize: assignment.seats,
+            status: "PLACED" as const,
+            description,
+          })),
+        )
+        .returning({
+          id: reservationsTable.id,
+          tableId: reservationsTable.tableId,
+          seats: reservationsTable.partySize,
+        });
 
-    const allocation = allocateTables(freeTables, partySize);
-    if (!allocation) {
-      throw new BookingError(409, "Not enough available seats for this time slot");
-    }
+      if (uniqueAllergenIds.length > 0) {
+        const allergenRows = created.flatMap((reservation) =>
+          uniqueAllergenIds.map((allergenId) => ({
+            reservationId: reservation.id,
+            allergenId,
+          })),
+        );
+        await tx.insert(reservationAllergensTable).values(allergenRows);
+      }
 
-    const description = input.description?.trim() ? input.description.trim() : null;
-
-    const created = await tx.insert(reservationsTable)
-      .values(allocation.map((assignment) => ({
+      return {
+        status: "PLACED" as const,
         userId,
         slotId,
-        tableId: assignment.tableId,
-        partySize: assignment.seats,
-        status: "PLACED" as const,
+        date: slot.date,
+        from: slot.from,
+        to: slot.to,
+        partySize,
         description,
-      })))
-      .returning({
-        id: reservationsTable.id,
-        tableId: reservationsTable.tableId,
-        seats: reservationsTable.partySize,
-      });
-
-    if (uniqueAllergenIds.length > 0) {
-      const allergenRows = created.flatMap((reservation) =>
-        uniqueAllergenIds.map((allergenId) => ({
+        allergenIds: uniqueAllergenIds,
+        allergens: matchingAllergens,
+        reservations: created.map((reservation) => ({
           reservationId: reservation.id,
-          allergenId,
-        }))
-      );
-      await tx.insert(reservationAllergensTable).values(allergenRows);
-    }
-
-    return {
-      status: "PLACED" as const,
-      userId,
-      slotId,
-      date: slot.date,
-      from: slot.from,
-      to: slot.to,
-      partySize,
-      description,
-      allergenIds: uniqueAllergenIds,
-      allergens: matchingAllergens,
-      reservations: created.map((reservation) => ({
-        reservationId: reservation.id,
-        tableId: reservation.tableId,
-        seats: reservation.seats,
-      })),
-    };
-  }, { behavior: "immediate" });
+          tableId: reservation.tableId,
+          seats: reservation.seats,
+        })),
+      };
+    },
+    { behavior: "immediate" },
+  );
 }
