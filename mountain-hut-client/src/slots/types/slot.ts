@@ -24,6 +24,7 @@ export interface CreateSlotRequest {
   from: string;
   to: string;
   tableIds: number[];
+  menuIds?: number[]; // menus offered for this slot
 }
 
 // MH-125 weekly schedule API contract
