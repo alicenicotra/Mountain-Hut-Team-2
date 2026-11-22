@@ -3,6 +3,7 @@ import { Layout, HomePage, NotFoundPage } from "./shared/index.ts";
 import { AuthProvider, RequireRole, LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage } from "./auth/index.ts";
 import { BookingPage, EmployeeReservationPage, MyBookingsPage } from "./booking/index.ts";
 import { EmployeeSlotsPage } from "./slots/index.ts";
+import { ManageMenusPage } from "./menus/index.ts";
 import { RegisterHikePage, MyHikesPage } from "./hikes/index.ts";
 import { MealsPage } from "./meals/index.ts";
 const STAFF = ["EMPLOYEE", "MANAGER"];
@@ -34,6 +35,7 @@ function App() {
             {/* employees and managers only */}
             <Route element={<RequireRole allow={STAFF} />}>
               <Route path="employee/slots" element={<EmployeeSlotsPage />} />
+              <Route path="employee/menus" element={<ManageMenusPage />} />
               <Route path="employee/reservations" element={<EmployeeReservationPage />} />
             </Route>
 
