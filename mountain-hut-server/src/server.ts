@@ -26,6 +26,7 @@ import { staffBookingRoutes } from "#src/booking/routes/staff-booking-routes";
 import { userResponseSchema } from "#src/users/user-schema";
 import { userRoutes } from "#src/users/user-routes";
 
+
 export function buildApp(opts: FastifyServerOptions = {}) {
   const server = Fastify({
     logger: true,

@@ -8,7 +8,6 @@ const staffBookingSchema = z.object({
   hikerId: z.number().int().positive(),
   slotId: z.number().int().positive(),
   partySize: z.number().int().positive().max(1000),
-  description: z.string().max(1000).optional(),
 }).strict();
 
 export async function staffBookingRoutes(app: FastifyInstance) {
@@ -28,12 +27,12 @@ export async function staffBookingRoutes(app: FastifyInstance) {
       });
     }
 
-    const { hikerId, slotId, partySize, description } = parsed.data;
+    const { hikerId, slotId, partySize } = parsed.data;
     try {
       // Only authenticated staff can bypass the hiker two-hour cutoff.
       // The slot must not have started; all other booking rules remain.
       const booking = await createBooking({
-        userId: hikerId, slotId, partySize, description, allowStaffLateBooking: true,
+        userId: hikerId, slotId, partySize, allowStaffLateBooking: true,
       });
       return reply.status(201).send(booking);
     } catch (error) {

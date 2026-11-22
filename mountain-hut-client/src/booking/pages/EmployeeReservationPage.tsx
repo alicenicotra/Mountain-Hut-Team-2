@@ -34,7 +34,6 @@ interface Confirmed {
   date: string;
   slot: SlotAvailability;
   hiker: HikerMatch;
-  menuName: string;
   temporaryPassword: string | null;
 }
 
@@ -59,13 +58,6 @@ const card = "bg-white border border-stone-200 rounded-lg p-5";
 const inputClass = "mt-1 w-full border border-stone-300 rounded px-3 py-2 bg-white";
 const primaryButton =
   "px-5 py-2.5 rounded bg-green-700 text-white font-medium hover:bg-green-800 disabled:bg-stone-300";
-
-// Menu suggestions come from the hut configuration; no dishes or prices are invented.
-// Staff may also enter a menu not present in the suggestions.
-const MENU_SUGGESTIONS = (import.meta.env.VITE_STAFF_MENUS ?? "")
-  .split("|")
-  .map((menu: string) => menu.trim())
-  .filter((menu: string) => menu.length > 0);
 
 const seats = (n: number) => `${n} ${n === 1 ? "seat" : "seats"}`;
 const people = (n: number) => `${n} ${n === 1 ? "person" : "people"}`;
@@ -127,7 +119,7 @@ function creationError(err: unknown): string {
 }
 
 function ConfirmedReservation({ confirmed, onNew }: { confirmed: Confirmed; onNew: () => void }) {
-    const { booking, date, slot, hiker, temporaryPassword, menuName } = confirmed;
+  const { booking, date, slot, hiker, temporaryPassword } = confirmed;
   const tableCode = (tableId: number) =>
     slot.tables.find((t) => t.tableId === tableId)?.code ?? `#${tableId}`;
 
@@ -143,7 +135,6 @@ function ConfirmedReservation({ confirmed, onNew }: { confirmed: Confirmed; onNe
         {hiker.name} {hiker.surname} · {people(booking.partySize)} · {formatDay(date, "short")},{" "}
         {slot.from}–{slot.to}
       </p>
-      {menuName && <p className="text-sm text-stone-700">Menu: {menuName}</p>}
       {temporaryPassword && <TemporaryPassword password={temporaryPassword} email={hiker.email} />}
       <button type="button" onClick={onNew} className={primaryButton}>
         New reservation
@@ -159,7 +150,6 @@ export default function EmployeeReservationPage() {
   const [slotId, setSlotId] = useState<number | null>(null);
   const [mode, setMode] = useState<HikerMode>("existing");
   const [hiker, setHiker] = useState<HikerMatch | null>(null);
-  const [menuName, setMenuName] = useState("");
   const [account, setAccount] = useState<AccountDetails>(NO_ACCOUNT);
   const [quick, setQuick] = useState<QuickDetails>(NO_QUICK);
   // The password of the hiker just created with "New account", until the reservation is done
@@ -242,7 +232,6 @@ export default function EmployeeReservationPage() {
     setPartySize("2");
     setSlotId(null);
     setHiker(null);
-    setMenuName("");
     setAccount(NO_ACCOUNT);
     setQuick(NO_QUICK);
     setTemporaryPassword(null);
@@ -310,15 +299,13 @@ export default function EmployeeReservationPage() {
         hikerId: target.id,
         slotId: selectedSlot.slotId,
         partySize: party,
-        ...(menuName.trim() ? { description: `Menu: ${menuName.trim()}` } : {}),
       });
-            setConfirmed({
+      setConfirmed({
         booking,
         date,
         slot: selectedSlot,
         hiker: target,
         temporaryPassword: password,
-        menuName: menuName.trim(),
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -481,42 +468,9 @@ export default function EmployeeReservationPage() {
           )}
 
           {selectedSlot && (
-            <Step number={3} title="Menu">
-              <label htmlFor="staff-menu" className="block text-sm">
-                Menu (optional)
-              </label>
-              <input
-                id="staff-menu"
-                type="text"
-                list="staff-menu-suggestions"
-                autoComplete="off"
-                maxLength={994}
-                value={menuName}
-                onChange={(e) => {
-                  setMenuName(e.target.value);
-                  setError(null);
-                }}
-                placeholder="Enter or select a menu"
-                className={inputClass}
-              />
-              <datalist id="staff-menu-suggestions">
-                {MENU_SUGGESTIONS.map((menu: string) => (
-                  <option key={menu} value={menu} />
-                ))}
-              </datalist>
-              <p className="mt-1 text-xs text-stone-500">
-                {MENU_SUGGESTIONS.length > 0
-                  ? "Choose a suggested menu or enter another name."
-                  : "Enter the menu name. No predefined menus are configured yet."}
-              </p>
-            </Step>
-          )}
-
-          {selectedSlot && (
             <div className="flex flex-wrap items-center gap-4 border-t border-stone-200 pt-4">
               <p>
                 {formatDay(date, "short")}, {selectedSlot.from}–{selectedSlot.to} · {people(party)}
-                {menuName.trim() && ` · Menu: ${menuName.trim()}`}
               </p>
               <button
                 type="submit"

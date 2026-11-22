@@ -5,6 +5,7 @@ import { BookingPage, EmployeeReservationPage, MyBookingsPage } from "./booking/
 import { EmployeeSlotsPage } from "./slots/index.ts";
 import { ManageMenusPage } from "./menus/index.ts";
 import { RegisterHikePage, MyHikesPage } from "./hikes/index.ts";
+import { MealsPage } from "./meals/index.ts";
 const STAFF = ["EMPLOYEE", "MANAGER"];
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
             <Route index element={<HomePage />} />
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />
+            <Route path="meals" element={<MealsPage />} />
             <Route path="forgot-password" element={<ForgotPasswordPage />} />
             <Route path="reset-password" element={<ResetPasswordPage />} />
             {/* guests can browse availability, hikers can book, staff can't */}
