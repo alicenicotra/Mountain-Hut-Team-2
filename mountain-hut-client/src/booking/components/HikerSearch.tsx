@@ -76,8 +76,8 @@ export default function HikerSearch({ onSelect }: HikerSearchProps) {
                   {hiker.name} {hiker.surname}
                 </span>
                 <span className="block text-sm text-stone-600">
-                  {hiker.email}
-                  {hiker.phoneNumber && ` · ${hiker.phoneNumber}`}
+                  {/* "Just a name" hikers have no email, and may have no phone */}
+                  {[hiker.email, hiker.phoneNumber].filter(Boolean).join(" · ")}
                 </span>
               </button>
             </li>

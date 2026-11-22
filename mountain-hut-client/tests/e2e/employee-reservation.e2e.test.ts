@@ -338,25 +338,6 @@ test.describe('as an employee', () => {
     await expect(reserveButton(page)).toBeEnabled()
   })
 
-  // Not available yet: to be replaced by real tests with MH-20 and the new account
-  test('shows the other two options as not available', async ({ page }) => {
-    const day = freeDay()
-    const time = await createSlot(page, day, '12:00', '13:00')
-    await chooseDay(page, day)
-    await slotTile(page, time).click()
-
-    for (const [option, field] of [
-      ['New account', 'Email'],
-      ['Just a name', 'Phone (optional)'],
-    ]) {
-      await page.getByRole('button', { name: option }).click()
-
-      await expect(page.getByText('Not available yet')).toBeVisible()
-      await expect(page.getByLabel(field)).toBeDisabled()
-      await expect(reserveButton(page)).toBeDisabled()
-    }
-  })
-
   test('moves to another day, and forgets the chosen slot', async ({ page, request }) => {
     const hiker = await registerHiker(request)
     const day = freeDay()
