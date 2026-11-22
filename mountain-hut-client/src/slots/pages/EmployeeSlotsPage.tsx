@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getSlots, getTables } from "../api/slots-api.ts";
+import { getSlotMenus, type SlotMenu } from "../api/slot-menus-api.ts";
 import AddTableForm from "../components/AddTableForm.tsx";
 import CreateSlotForm from "../components/CreateSlotForm.tsx";
 import SlotList from "../components/SlotList.tsx";
@@ -21,6 +22,8 @@ export default function EmployeeSlotsPage() {
   const [date, setDate] = useState(todayString());
   const [tables, setTables] = useState<Table[]>([]);
   const [tablesError, setTablesError] = useState<string | null>(null);
+  const [menus, setMenus] = useState<SlotMenu[]>([]);
+  const [menusError, setMenusError] = useState<string | null>(null);
   // Remembers which date the slots belong to: while it differs from `date`
   // the slots of the newly chosen day are still loading
   const [slotsResult, setSlotsResult] = useState<SlotsResult | null>(null);
@@ -56,6 +59,21 @@ export default function EmployeeSlotsPage() {
       ignore = true;
     };
   }, [date]);
+
+  useEffect(() => {
+    let ignore = false;
+    getSlotMenus()
+      .then((available) => {
+        if (!ignore) {
+          setMenus(available);
+          setMenusError(null);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!ignore) setMenusError(err instanceof Error ? err.message : String(err));
+      });
+    return () => { ignore = true; };
+  }, []);
 
   const loadingSlots = slotsResult?.date !== date;
 
@@ -102,6 +120,8 @@ export default function EmployeeSlotsPage() {
                 key={date}
                 date={date}
                 tables={tables}
+                menus={menus}
+                menusError={menusError}
                 onCreated={handleSlotCreated}
               />
             )}

@@ -40,7 +40,6 @@ export interface CreateStaffBookingRequest {
   hikerId: number;
   slotId: number;
   partySize: number;
-  description?: string; // optional menu name stored in reservation notes (MH-116)
 }
 
 // --- GET /api/v1/bookings/mine (MH-36) ---
@@ -76,4 +75,11 @@ export interface ChangeBookingResult {
   partySize: number;
   description?: string | null;
   reservations: Reservation[];
+}
+
+// --- DELETE /api/v1/bookings/:id (MH-08) ---
+
+export interface CancelBookingResult {
+  id: number;
+  status: "CANCELED";
 }

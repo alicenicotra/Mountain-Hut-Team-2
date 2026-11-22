@@ -16,6 +16,7 @@ import { availabilityRoutes } from "./booking/routes/availability-routes.ts";
 import { bookingRoutes } from "./booking/routes/booking-routes.ts";
 import { staffBookingRoutes } from "./booking/routes/staff-booking-routes.ts";
 import { changeBookingRoutes } from "./booking/routes/change-booking-routes.ts";
+import { cancelBookingRoutes } from "./booking/routes/cancel-booking-routes.ts";
 import { allergenRoutes } from "./allergens/allergen-routes.ts";
 import { authRoutes } from "./auth/auth-routes.ts";
 import { hikeRoutes } from "./hikes/hike-routes.ts";
@@ -71,6 +72,7 @@ export function buildApp(opts: FastifyServerOptions = {}) {
   server.register(bookingRoutes, { prefix: BASE_URL });
   server.register(staffBookingRoutes, { prefix: BASE_URL });
   server.register(changeBookingRoutes, { prefix: BASE_URL });
+  server.register(cancelBookingRoutes, { prefix: BASE_URL });
   server.register(hikeRoutes, { prefix: BASE_URL });
   server.register(allergenRoutes, { prefix: BASE_URL });
   server.register(authRoutes, {

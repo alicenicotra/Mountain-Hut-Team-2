@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import CreateSlotForm from '../../../src/slots/components/CreateSlotForm'
 import { createSlot, getSlots } from '../../../src/slots/api/slots-api.ts'
 import type { Table, TimeSlot } from '../../../src/slots/types/slot.ts'
+import type { SlotMenu } from '../../../src/slots/api/slot-menus-api.ts'
 
 // Only the calls to the backend are replaced: the form logic is the real one
 vi.mock('../../../src/slots/api/slots-api.ts', () => ({
@@ -32,9 +33,9 @@ function createdSlot(overrides: Partial<TimeSlot> = {}): TimeSlot {
   }
 }
 
-function renderForm(date = FUTURE_DAY) {
+function renderForm(date = FUTURE_DAY, menus: SlotMenu[] = []) {
   const onCreated = vi.fn()
-  render(<CreateSlotForm date={date} tables={tables} onCreated={onCreated} />)
+  render(<CreateSlotForm date={date} tables={tables} menus={menus} onCreated={onCreated} />)
   return { onCreated, user: userEvent.setup() }
 }
 
@@ -241,6 +242,38 @@ describe('CreateSlotForm', () => {
 
       expect(createButton()).toBeDisabled()
       expect(screen.getByText(/in the past/)).toBeInTheDocument()
+    })
+  })
+
+  describe('menus for a slot (MH-116)', () => {
+    const menus: SlotMenu[] = [
+      { id: 10, name: 'Hut Lunch', type: 'TEMPLATE' },
+      { id: 11, name: 'Vegetarian Lunch', type: 'MODIFIED' },
+    ]
+
+    it('allows selecting multiple predefined menus and sends their ids', async () => {
+      vi.mocked(createSlot).mockResolvedValue(createdSlot())
+      const { user } = renderForm(FUTURE_DAY, menus)
+      await user.click(screen.getByText('Select menus (0 selected)'))
+      await user.click(screen.getByRole('checkbox', { name: /Hut Lunch/ }))
+      await user.click(screen.getByRole('checkbox', { name: /Vegetarian Lunch/ }))
+      await user.click(screen.getByRole('button', { name: /^Lunch / }))
+      await user.click(createButton())
+
+      expect(createSlot).toHaveBeenCalledWith(expect.objectContaining({
+        menuIds: [10, 11],
+      }))
+      expect(screen.getByText('Select menus (0 selected)')).toBeInTheDocument()
+    })
+
+    it('does not add menuIds when no menu is selected', async () => {
+      vi.mocked(createSlot).mockResolvedValue(createdSlot())
+      const { user } = renderForm(FUTURE_DAY, menus)
+      await user.click(screen.getByRole('button', { name: /^Lunch / }))
+      await user.click(createButton())
+      expect(createSlot).toHaveBeenCalledWith({
+        date: FUTURE_DAY, from: '12:00', to: '14:00', tableIds: [],
+      })
     })
   })
 

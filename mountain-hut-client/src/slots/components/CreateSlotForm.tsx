@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import type { SlotMenu } from "../api/slot-menus-api.ts";
 import { createSlot } from "../api/slots-api.ts";
 import { formatDay, normalizeTime, todayString } from "../../shared/utils/date.ts";
 import CopyTablesPicker from "./CopyTablesPicker";
@@ -9,6 +10,8 @@ import type { Table, TimeSlot } from "../types/slot.ts";
 interface CreateSlotFormProps {
   date: string;
   tables: Table[];
+  menus?: SlotMenu[];
+  menusError?: string | null;
   onCreated: (slot: TimeSlot) => void;
 }
 
@@ -27,10 +30,11 @@ const chip =
   "px-3 py-1.5 rounded-full border text-sm transition cursor-pointer";
 const link = "text-sm hover:underline";
 
-export default function CreateSlotForm({ date, tables, onCreated }: CreateSlotFormProps) {
+export default function CreateSlotForm({ date, tables, menus = [], menusError = null, onCreated }: CreateSlotFormProps) {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [selectedTableIds, setSelectedTableIds] = useState<number[]>([]);
+  const [selectedMenuIds, setSelectedMenuIds] = useState<number[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [copiedFrom, setCopiedFrom] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -58,6 +62,12 @@ export default function CreateSlotForm({ date, tables, onCreated }: CreateSlotFo
     );
   }
 
+  function toggleMenu(menuId: number) {
+    setSelectedMenuIds((current) => current.includes(menuId)
+      ? current.filter((id) => id !== menuId)
+      : [...current, menuId]);
+  }
+
   function copyTables(slot: TimeSlot) {
     setSelectedTableIds(slot.tables.map((t) => t.id));
     setCopiedFrom(`${formatDay(slot.date, "short")}, ${slot.from}–${slot.to}`);
@@ -80,12 +90,14 @@ export default function CreateSlotForm({ date, tables, onCreated }: CreateSlotFo
         from: fromTime,
         to: toTime,
         tableIds: selectedTableIds,
+        ...(selectedMenuIds.length > 0 ? { menuIds: selectedMenuIds } : {}),
       });
       onCreated(slot);
       setSuccess(`Slot ${slot.from}–${slot.to} created`);
       setFrom("");
       setTo("");
       selectTables([]);
+      setSelectedMenuIds([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -207,6 +219,43 @@ export default function CreateSlotForm({ date, tables, onCreated }: CreateSlotFo
               );
             })}
           </div>
+        )}
+      </Step>
+
+      <Step number={3} title="Menus">
+        {menusError ? (
+          <p role="alert" className="text-sm text-amber-800">
+            Could not load menus: {menusError}. You can still create the slot without menus.
+          </p>
+        ) : menus.length === 0 ? (
+          <p className="text-sm text-stone-500">
+            No menus available yet. Create them in Manage menus before assigning them to a slot.
+          </p>
+        ) : (
+          <>
+            <details className="rounded-lg border border-stone-300 bg-white">
+              <summary className="cursor-pointer px-4 py-3 font-medium text-stone-800">
+                Select menus ({selectedMenuIds.length} selected)
+              </summary>
+              <div role="group" aria-label="Menus for this slot" className="grid gap-2 border-t border-stone-200 p-3">
+                {menus.map((menu) => (
+                  <label key={menu.id} className="flex cursor-pointer items-center gap-3 rounded px-2 py-2 text-sm hover:bg-green-50">
+                    <input
+                      type="checkbox"
+                      checked={selectedMenuIds.includes(menu.id)}
+                      onChange={() => toggleMenu(menu.id)}
+                      className="accent-green-700"
+                    />
+                    <span>{menu.name}</span>
+                    <span className="ml-auto text-xs text-stone-500">{menu.type === "TEMPLATE" ? "Default" : "Custom"}</span>
+                  </label>
+                ))}
+              </div>
+            </details>
+            <p className="mt-1 text-xs text-stone-500">
+              The selected menus will be offered for this time slot.
+            </p>
+          </>
         )}
       </Step>
 

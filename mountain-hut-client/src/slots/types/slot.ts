@@ -24,4 +24,5 @@ export interface CreateSlotRequest {
   from: string;
   to: string;
   tableIds: number[];
+  menuIds?: number[]; // menus offered for this slot
 }

@@ -535,6 +535,52 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+    delete:
+      tags: [Bookings]
+      summary: Cancel a booking
+      description: |
+        Roles: `HIKER`. Cancels a booking before the slot starts. All table
+        reservations for this booking are set to `CANCELED`, releasing the seats.
+      operationId: cancelBooking
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          description: The `id` from `GET /api/v1/bookings/mine`
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Booking canceled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CanceledBooking"
+        "400":
+          description: Invalid booking id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: The booking does not exist or belongs to someone else
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: The booking is not `PLACED` or the time slot has already started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /api/v1/staff/bookings:
     post:
@@ -1126,10 +1172,6 @@ components:
           type: integer
           minimum: 1
           maximum: 1000
-        description:
-          type: string
-          maxLength: 1000
-          description: Optional staff-entered menu choice stored in reservation notes (MH-116)
 
     ChangeBookingRequest:
       type: object
@@ -1218,6 +1260,16 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Reservation"
+
+    CanceledBooking:
+      type: object
+      required: [id, status]
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+          enum: [CANCELED]
 
     MyBooking:
       type: object
