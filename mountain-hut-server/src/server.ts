@@ -2,6 +2,7 @@ import Fastify, { type FastifyServerOptions } from "fastify";
 import secureSession from "@fastify/secure-session";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
+import fastifyJwt from "@fastify/jwt";
 import { fileURLToPath } from "node:url";
 import {
   serializerCompiler,
@@ -21,6 +22,7 @@ import { hikeRoutes } from "#src/hikes/hike-routes";
 import { menuRoutes } from "#src/menus/menu-routes";
 import { slotRoutes } from "#src/slots/slot-routes";
 import { staffBookingRoutes } from "#src/booking/routes/staff-booking-routes";
+import { userResponseSchema } from "#src/users/user-schema";
 import { userRoutes } from "#src/users/user-routes";
 
 export function buildApp(opts: FastifyServerOptions = {}) {
@@ -31,6 +33,7 @@ export function buildApp(opts: FastifyServerOptions = {}) {
 
   server.setValidatorCompiler(validatorCompiler);
   server.setSerializerCompiler(serializerCompiler);
+  server.register(fastifyJwt, { secret: env.SESSION_SECRET });
 
   server.register(secureSession, {
     secret: env.SESSION_SECRET,
@@ -46,12 +49,9 @@ export function buildApp(opts: FastifyServerOptions = {}) {
 
   server.addHook("preHandler", async (request) => {
     const userId = request.session.get("userId");
-
     if (userId) {
-      const user = await UserRepository.getUserById(userId);
-      request.user = user ?? null;
-    } else {
-      request.user = null;
+      const rawUser = await UserRepository.getUserById(userId);
+      request.user = rawUser ? userResponseSchema.parse(rawUser) : null;
     }
   });
 
@@ -82,6 +82,7 @@ export function buildApp(opts: FastifyServerOptions = {}) {
   server.register(userRoutes, { prefix: `${BASE_URL}/users` });
 
   server.register(allergenRoutes, { prefix: BASE_URL });
+
   server.register(dishRoutes, { prefix: `${BASE_URL}/dishes` });
   server.register(menuRoutes, { prefix: `${BASE_URL}/menus` });
 

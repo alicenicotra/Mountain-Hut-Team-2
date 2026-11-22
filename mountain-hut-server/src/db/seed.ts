@@ -1,6 +1,8 @@
 import argon2 from "argon2";
+
 import * as schema from "./schema.ts";
 import { db } from "./database.ts";
+import { passwordResetTokensTable } from "./schema.ts";
 
 // "YYYY-MM-DD" of today + offset days, so demo slots are always in the future
 function dayFromToday(offset: number): string {
@@ -58,6 +60,18 @@ async function main() {
       },
     ])
     .returning();
+
+  const tempUser = insertedUsers.find((u) => u.type === "TEMPORARY");
+  if (tempUser && tempUser.email) {
+    const plainToken = "temp-hiker-reset-token-12345";
+    const tokenHash = await argon2.hash(plainToken);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    await db.insert(passwordResetTokensTable).values({
+      userId: tempUser.id,
+      tokenHash,
+      expiresAt,
+    });
+  }
 
   console.log(`Successfully inserted ${insertedUsers.length} users.`);
 
