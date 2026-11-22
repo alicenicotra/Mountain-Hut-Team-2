@@ -28,6 +28,13 @@ vi.mock("../../../src/config.ts", () => ({
     SESSION_SECRET: "a".repeat(32),
     SESSION_SALT: "1234567890123456",
     DB_FILE_NAME: ":memory:",
+    APP_URL: "http://localhost:5173",
+  },
+  mailConfig: {
+    host: "localhost",
+    port: 1025,
+    secure: false,
+    from: '"Mountain Hut" <booking@mountain-hut.test>',
   },
 }));
 vi.mock("../../../src/slots/slot-routes.ts", () => ({ slotRoutes: vi.fn() }));
@@ -53,6 +60,9 @@ vi.mock("../../../src/hikes/hike-routes.ts", () => ({
   hikeRoutes: vi.fn(),
 }));
 vi.mock("../../../src/auth/auth-routes.ts", () => ({ authRoutes: vi.fn() }));
+vi.mock("../../../src/auth/password-reset-routes.ts", () => ({
+  passwordResetRoutes: vi.fn(),
+}));
 vi.mock("../../../src/users/user-repository.ts", () => ({
   default: { getUserById: vi.fn() },
 }));
@@ -83,7 +93,7 @@ describe("server app startup", () => {
       port: 3000,
       host: "0.0.0.0",
     });
-    expect(mocks.server.register).toHaveBeenCalledTimes(16);
+    expect(mocks.server.register).toHaveBeenCalledTimes(17);
     expect(mocks.server.get).toHaveBeenCalledWith("/", expect.any(Function));
 
     const callback = mocks.server.listen.mock.calls[0][1] as (
