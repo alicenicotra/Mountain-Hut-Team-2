@@ -17,12 +17,18 @@ async function main() {
   console.log("Seeding database...");
 
   // Children first, otherwise the foreign keys block the deletes
+  await db.delete(schema.timeSlotMenuTable);
+  await db.delete(schema.menuDishesTable);
+  await db.delete(schema.dishAllergenTable);
   await db.delete(schema.reservationAllergensTable);
   await db.delete(schema.reservationsTable);
   await db.delete(schema.tableAvailabilityTable);
   await db.delete(schema.timeSlotTable);
   await db.delete(schema.tablesTable);
+  await db.delete(schema.hikesTable);
   await db.delete(schema.usersTable);
+  await db.delete(schema.menusTable);
+  await db.delete(schema.dishesTable);
   await db.delete(schema.allergensTable);
 
   const insertedUsers = await db
@@ -378,6 +384,22 @@ async function main() {
   ]);
 
   console.log("Successfully linked dishes to menus.");
+
+
+  // --- 5. TIMESLOT_MENU: the menus each demo slot offers (MH-10/MH-11) ---
+  await db.insert(schema.timeSlotMenuTable).values(
+    insertedSlots.flatMap((slot) => [
+      { slotId: slot.id, menuId: menuId("Menu Tradizionale Alpino") },
+      {
+        slotId: slot.id,
+        menuId: menuId(
+          slot.from < "16:00" ? "Menu Degustazione del Rifugio" : "Menu Cacciatore Speciale",
+        ),
+      },
+    ]),
+  );
+
+  console.log("Successfully linked menus to time slots.");
 }
 
 main().catch((e) => {

@@ -856,6 +856,34 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /api/v1/meals:
+    get:
+      tags: [Menus]
+      summary: Meal times of a day, with their menus, dishes and allergens
+      description: |
+        Open to every user, guests included (MH-11). Returns the time slots of
+        the date ordered by start time, each with the menus specified for it;
+        canceled menus are left out. Dishes are in serving order, each with its
+        allergens, and each menu also lists all the allergens of its dishes.
+      operationId: getMeals
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/Date"
+      responses:
+        "200":
+          description: The meal times of the day; empty if there are none
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MealSlot"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+   
 components:
   securitySchemes:
     sessionCookie:
@@ -1521,3 +1549,60 @@ components:
       properties:
         id:
           type: integer
+
+    MealDish:
+      type: object
+      required: [id, name, description, course, allergens]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        course:
+          $ref: "#/components/schemas/DishCourse"
+        allergens:
+          type: array
+          items:
+            $ref: "#/components/schemas/Allergen"
+
+    MealMenu:
+      type: object
+      required: [id, name, type, allergens, dishes]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          $ref: "#/components/schemas/MenuType"
+        allergens:
+          type: array
+          description: All the allergens of the menu's dishes, once each
+          items:
+            $ref: "#/components/schemas/Allergen"
+        dishes:
+          type: array
+          items:
+            $ref: "#/components/schemas/MealDish"
+
+    MealSlot:
+      type: object
+      required: [slotId, date, from, to, menus]
+      properties:
+        slotId:
+          type: integer
+        date:
+          $ref: "#/components/schemas/Date"
+        from:
+          type: string
+          example: "12:00"
+        to:
+          type: string
+          example: "14:00"
+        menus:
+          type: array
+          items:
+            $ref: "#/components/schemas/MealMenu"

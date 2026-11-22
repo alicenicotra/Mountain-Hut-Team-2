@@ -17,6 +17,7 @@ import { bookingRoutes } from "#src/booking/routes/booking-routes";
 import { cancelBookingRoutes } from "#src/booking/routes/cancel-booking-routes";
 import { changeBookingRoutes } from "#src/booking/routes/change-booking-routes";
 import { dishRoutes } from "#src/menus/dishes/dish-routes";
+import { mealRoutes } from "#src/menus/meals/meal-routes";
 import { env } from "#src/config";
 import { hikeRoutes } from "#src/hikes/hike-routes";
 import { menuRoutes } from "#src/menus/menu-routes";
@@ -85,6 +86,7 @@ export function buildApp(opts: FastifyServerOptions = {}) {
 
   server.register(dishRoutes, { prefix: `${BASE_URL}/dishes` });
   server.register(menuRoutes, { prefix: `${BASE_URL}/menus` });
+  server.register(mealRoutes, { prefix: `${BASE_URL}/meals` });
 
   return server;
 }
