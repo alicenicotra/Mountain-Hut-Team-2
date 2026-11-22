@@ -1,4 +1,4 @@
-import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
@@ -7,31 +7,15 @@ import argon2 from "argon2";
 import { UserRepository, type User } from "./user-repository.ts";
 import {
   getUserQuerySchema,
-  userCreationSchema,
   userResponseSchema,
+  userCreationSchema,
 } from "./user-schema.ts";
+import { requireStaff } from "#src/middlewares/requireStaff";
 import { randomInt } from "node:crypto";
 import { PasswordResetRepository } from "../auth/auth-repository.ts";
 import { renderTemporaryAccountEmail } from "../notifications/utils.ts";
 import { emailSender } from "../notifications/sender.ts";
 import { env } from "../config.ts";
-
-export async function requireEmployeeOrManager(
-  request: FastifyRequest,
-  reply: FastifyReply,
-) {
-  if (!request.user) {
-    return reply
-      .code(StatusCodes.UNAUTHORIZED)
-      .send({ message: "Authentication required" });
-  }
-
-  if (request.user.type !== "EMPLOYEE" && request.user.type !== "MANAGER") {
-    return reply
-      .code(StatusCodes.FORBIDDEN)
-      .send({ message: "Forbidden: insufficient permissions" });
-  }
-}
 
 export const userRoutes: FastifyPluginAsync = async (server) => {
   const typed = server.withTypeProvider<ZodTypeProvider>();
@@ -39,7 +23,7 @@ export const userRoutes: FastifyPluginAsync = async (server) => {
   typed.get(
     "/",
     {
-      preHandler: requireEmployeeOrManager,
+      preHandler: requireStaff,
       schema: {
         querystring: getUserQuerySchema,
         response: {
@@ -79,7 +63,7 @@ export const userRoutes: FastifyPluginAsync = async (server) => {
   typed.post(
     "/",
     {
-      preHandler: requireEmployeeOrManager,
+      preHandler: requireStaff,
       schema: {
         body: userCreationSchema,
         response: {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { searchHikers } from '../../../src/booking/api/hikers-api.ts'
+import { createHiker, searchHikers } from '../../../src/booking/api/hikers-api.ts'
 
 const mario = {
   id: 1,
@@ -92,6 +92,15 @@ describe('searchHikers', () => {
     expect(await searchHikers('rossi')).toEqual([mario])
   })
 
+  // MH-07: hikers created at the hut can come back and book again
+  it('lists the hikers created by the staff, with or without an account', async () => {
+    const anna = { ...mario, id: 3, name: 'Anna', type: 'TEMPORARY' }
+    const luigi = { id: 4, name: 'Luigi', surname: null, email: null, phoneNumber: null, type: 'THROWAWAY' }
+    stubApi(() => [mario, luca, anna, luigi])
+
+    expect(await searchHikers('rossi')).toEqual([mario, anna, luigi])
+  })
+
   it.each([
     [401, 'Authentication required'],
     [403, 'Only employees and managers can search users'],
@@ -100,5 +109,27 @@ describe('searchHikers', () => {
     vi.stubGlobal('fetch', vi.fn(async () => response(status, { error })))
 
     await expect(searchHikers('rossi')).rejects.toThrow(error)
+  })
+})
+
+describe('createHiker', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('sends the new hiker to POST /users and returns what the API created', async () => {
+    const created = { id: 20, name: 'Anna', surname: 'Bianchi', email: 'anna@example.com', phoneNumber: '+39 333', type: 'TEMPORARY', temporaryPassword: 'secret' }
+    const fetchMock = vi.fn(async () => response(201, created))
+    vi.stubGlobal('fetch', fetchMock)
+    const body = { type: 'TEMPORARY' as const, name: 'Anna', surname: 'Bianchi', email: 'anna@example.com', phoneNumber: '+39 333' }
+
+    expect(await createHiker(body)).toEqual(created)
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/users', expect.objectContaining({ method: 'POST', body: JSON.stringify(body) }))
+  })
+
+  it('reports the status of a refused creation', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => response(409, { message: 'An account with this email already exists' })))
+
+    await expect(createHiker({ type: 'THROWAWAY', name: 'Luigi' })).rejects.toMatchObject({ status: 409 })
   })
 })

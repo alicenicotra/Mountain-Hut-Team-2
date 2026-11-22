@@ -143,14 +143,18 @@ server: { proxy: { "/api": "http://localhost:3000" } }
 
 The API client (`src/api/client.ts`) uses the base path `/api/v1` by default, overridable via the `VITE_API_URL` environment variable.
 
-### Slot menu selection (MH-116)
+### Staff menu choice (MH-116)
 
-On the employee Slots and tables page, the New slot form loads the real menu
-catalog from `GET /api/v1/menus`. Staff can choose multiple default or custom
-menus; their IDs are submitted to `POST /api/v1/slots` as `menuIds`.
-The form remains usable without menus. This requires the MH-114/MH-115 menu
-backend; the current slot listing API does not return assigned menus, so
-showing previously selected menus alongside existing slots needs an API extension.
+The staff reservation page (`/employee/reservations`) includes an optional menu
+field. Employees can type a menu name or select one of the suggestions configured
+by the hut. The selection is saved with the reservation as
+`description: "Menu: <name>"`, using the existing booking notes field. There is
+no menu catalog or price API yet, so this does not enforce inventory, quantities
+or pricing.
+
+To show real, PO-approved suggestions, set `VITE_STAFF_MENUS` in the client
+environment to a pipe-separated list (for example `Menu A|Menu B` as placeholders).
+Leave it unset to allow staff to enter the menu name manually.
 
 ### Environment Variables
 
