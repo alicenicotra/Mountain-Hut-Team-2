@@ -85,11 +85,22 @@ export const userRoutes: FastifyPluginAsync = async (server) => {
         response: {
           [StatusCodes.CREATED]: userResponseSchema,
           [StatusCodes.CONFLICT]: z.object({ message: z.string() }),
+          [StatusCodes.FORBIDDEN]: z.object({ message: z.string() }),
         },
       },
     },
     async (request, reply) => {
       const { body } = request;
+
+      if (
+        request.user &&
+        request.user.type === "EMPLOYEE" &&
+        body.type === "MANAGER"
+      ) {
+        return reply
+          .code(StatusCodes.FORBIDDEN)
+          .send({ message: "Employees cannot create new MANAGER accounts." });
+      }
 
       if (body.type === "THROWAWAY") {
         const newUser = await UserRepository.saveUser({
@@ -106,21 +117,18 @@ export const userRoutes: FastifyPluginAsync = async (server) => {
           .send(userResponseSchema.parse(newUser));
       }
 
-      if (body.email) {
-        const existingUser = await UserRepository.getUserByEmail(body.email);
-        if (existingUser) {
-          return reply
-            .code(StatusCodes.CONFLICT)
-            .send({ message: "An account with this email already exists" });
-        }
+      const existingUser = await UserRepository.getUserByEmail(body.email);
+      if (existingUser) {
+        return reply
+          .code(StatusCodes.CONFLICT)
+          .send({ message: "An account with this email already exists" });
       }
 
-      let passwordHash: string | null = null;
-      let rawPassword: string | null = null;
-      if (body.type === "TEMPORARY") {
-        rawPassword = `${body.name}${body.surname ?? ""}${randomInt(100, 1000)}`;
-        passwordHash = await argon2.hash(rawPassword);
-      }
+      const rawPassword =
+        body.type === "TEMPORARY"
+          ? `${body.name}${body.surname ?? ""}${randomInt(100, 1000)}`
+          : body.password;
+      const passwordHash = await argon2.hash(rawPassword);
 
       const newUser = await UserRepository.saveUser({
         email: body.email,
