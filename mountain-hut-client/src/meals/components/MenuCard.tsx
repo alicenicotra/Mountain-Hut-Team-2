@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import type { Course, MealDish, MealMenu } from "../types/meal.ts";
 import { COURSE_LABELS, COURSE_ORDER } from "../utils/meal-rules.ts";
 import CourseIcon from "./CourseIcon.tsx";
+import Icon from "../../shared/components/Icon.tsx";
 
 interface Props {
   menu: MealMenu;
@@ -38,13 +39,22 @@ export default function MenuCard({ menu, avoid, style }: Props) {
           hasConflict ? "border-red-200 bg-red-50" : "border-stone-100"
         }`}
       >
-        <div>
-          <h2 className={`text-base font-semibold leading-snug ${hasConflict ? "text-red-800" : "text-stone-900"}`}>
+        <div className="flex items-start gap-3">
+          <span
+            className={`flex items-center justify-center w-10 h-10 shrink-0 rounded-xl ${
+              hasConflict ? "bg-red-100 text-red-700" : "bg-green-50 text-green-700"
+            }`}
+          >
+            <Icon name="book" className="w-5 h-5" />
+          </span>
+          <div>
+          <h2 className={`text-lg font-semibold leading-snug ${hasConflict ? "text-red-800" : "text-stone-900"}`}>
             {menu.name}
           </h2>
           <p className="mt-0.5 text-sm text-stone-500">
             {menu.dishes.length} {menu.dishes.length === 1 ? "dish" : "dishes"}
           </p>
+          </div>
         </div>
         {filtering && (
           <span
@@ -61,7 +71,8 @@ export default function MenuCard({ menu, avoid, style }: Props) {
 
       {/* Body */}
       <div className="flex-1 space-y-5 px-5 py-4">
-        <p className="text-sm text-stone-600">
+        <p className="flex flex-wrap items-center gap-x-1 rounded-lg bg-stone-50 px-3 py-2 text-sm text-stone-600">
+          <Icon name="warning" className="w-4 h-4 mr-1 text-amber-500" />
           {menu.allergens.length === 0 ? (
             "No listed allergens"
           ) : (
@@ -85,8 +96,8 @@ export default function MenuCard({ menu, avoid, style }: Props) {
 
         {courses.map(({ course, dishes }) => (
           <section key={course} aria-label={COURSE_LABELS[course]}>
-            <h5 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-stone-500">
-              <CourseIcon course={course} className="h-4 w-4" />
+            <h5 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-green-700">
+              <CourseIcon course={course} className="h-5 w-5" />
               {COURSE_LABELS[course]}
             </h5>
             <ul className="space-y-3">
@@ -95,8 +106,8 @@ export default function MenuCard({ menu, avoid, style }: Props) {
                 return (
                   <li
                     key={dish.id}
-                    className={`rounded-lg px-3 py-2 ${
-                      dishConflict ? "border-l-4 border-red-500 bg-red-50" : ""
+                    className={`rounded-lg px-3 py-2 transition-colors ${
+                      dishConflict ? "border-l-4 border-red-500 bg-red-50" : "hover:bg-stone-50"
                     }`}
                   >
                     <p className={`text-base font-medium ${dishConflict ? "text-red-800" : "text-stone-900"}`}>

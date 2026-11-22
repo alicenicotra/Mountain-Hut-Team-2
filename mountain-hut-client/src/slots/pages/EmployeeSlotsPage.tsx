@@ -6,6 +6,10 @@ import CreateSlotForm from "../components/CreateSlotForm.tsx";
 import SlotList from "../components/SlotList.tsx";
 import CopyWeekForm from "../components/CopyWeekForm.tsx";
 import DayBar from "../../shared/components/DayBar.tsx";
+import PageHeader from "../../shared/components/PageHeader.tsx";
+import SectionTitle from "../../shared/components/SectionTitle.tsx";
+import Icon from "../../shared/components/Icon.tsx";
+import { sectionCard as card } from "../../shared/styles.ts";
 import { todayString } from "../../shared/utils/date.ts";
 import type { Table, TimeSlot } from "../types/slot.ts";
 
@@ -16,8 +20,6 @@ interface SlotsResult {
 }
 
 const byStartTime = (a: TimeSlot, b: TimeSlot) => a.from.localeCompare(b.from);
-
-const card = "bg-white border border-stone-200 rounded-lg p-5";
 
 export default function EmployeeSlotsPage() {
   const [date, setDate] = useState(todayString());
@@ -98,38 +100,43 @@ export default function EmployeeSlotsPage() {
   return (
     // Wider than the default layout column: the page needs room for the table grid
     <div className="relative left-1/2 -translate-x-1/2 w-[min(80rem,calc(100vw-2rem))] space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Slots and tables</h1>
-        <p className="text-stone-600">Hikers can only book the slots defined here.</p>
-      </div>
+      <PageHeader
+        icon="calendar"
+        eyebrow="Staff · Planning"
+        title="Slots and tables"
+        subtitle="Hikers can only book the slots defined here."
+      />
 
       <div className={card}>
         <DayBar date={date} onChange={setDate} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[2fr_3fr] items-start">
-        <section className={`${card} space-y-4`}>
-          <h2 className="text-lg font-semibold">Slots of the day</h2>
+        <section className={`${card} space-y-4 lg:sticky lg:top-20`}>
+          <SectionTitle icon="clock" title="Slots of the day" hint="Opening times hikers can choose from" />
           {loadingSlots ? (
-            <p className="text-stone-500">Loading…</p>
+            <div className="flex items-center gap-3 py-6 text-stone-500">
+              <span className="w-5 h-5 rounded-full border-2 border-green-600 border-t-transparent animate-spin" aria-hidden="true" />
+              <p>Loading…</p>
+            </div>
           ) : slotsResult.error ? (
-            <p className="text-red-600">Error: {slotsResult.error}</p>
+            <p className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+              <Icon name="warning" className="w-6 h-6" />
+              <span>Error: {slotsResult.error}</span>
+            </p>
           ) : (
             <SlotList slots={slotsResult.slots} />
           )}
         </section>
 
         <div className="space-y-6">
-          <section className={`${card} space-y-4`}>
-            <h2 className="text-lg font-semibold">Copy weekly schedule</h2>
-            <CopyWeekForm key={date} selectedDate={date} onCopied={handleWeekCopied} />
-            {copyNotice && <p role="status" className="text-sm text-green-800">{copyNotice}</p>}
-          </section>
-
-          <section className={`${card} space-y-4`}>
-            <h2 className="text-lg font-semibold">New slot</h2>
+          <section className={`${card} space-y-5`} style={{ animationDelay: "80ms" }}>
+            <SectionTitle icon="plus" title="New slot" hint="Pick a time, the tables and the menus" />
             {tablesError ? (
-              <p className="text-red-600">Error: {tablesError}</p>
+              <p className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+                <Icon name="warning" className="w-6 h-6" />
+                <span>Error: {tablesError}</span>
+              </p>
             ) : (
               <CreateSlotForm
                 // A new day starts with an empty form
@@ -143,8 +150,19 @@ export default function EmployeeSlotsPage() {
             )}
           </section>
 
-          <section className={`${card} space-y-3`}>
-            <h2 className="text-lg font-semibold">Add a table</h2>
+          <section className={`${card} space-y-4`} style={{ animationDelay: "160ms" }}>
+            <SectionTitle icon="repeat" title="Copy weekly schedule" />
+            <CopyWeekForm key={date} selectedDate={date} onCopied={handleWeekCopied} />
+            {copyNotice && (
+              <p role="status" className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 p-4 text-green-800 animate-pop-in">
+                <Icon name="check" className="w-5 h-5" />
+                {copyNotice}
+              </p>
+            )}
+          </section>
+
+          <section className={`${card} space-y-4`} style={{ animationDelay: "240ms" }}>
+            <SectionTitle icon="tables" title="Add a table" hint={`${tables.length} tables in the hut`} />
             <AddTableForm onCreated={(table) => setTables((ts) => [...ts, table])} />
           </section>
         </div>

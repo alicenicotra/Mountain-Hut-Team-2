@@ -1,4 +1,5 @@
 import type { Allergen } from "../../booking/types/booking.ts";
+import Icon from "../../shared/components/Icon.tsx";
 
 interface AllergenFilterProps {
   allergens: Allergen[] | null; // null while loading
@@ -17,30 +18,19 @@ export default function AllergenFilter({
   onClear,
 }: AllergenFilterProps) {
   return (
-    <fieldset className="rounded-xl border border-stone-200 bg-gradient-to-br from-stone-50 to-white px-4 py-3">
+    <fieldset className="rounded-2xl border border-stone-200 bg-linear-to-br from-stone-50 to-white px-5 py-4 shadow-xs">
       <div className="flex items-center justify-between gap-3">
-        <legend className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-green-700">
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-4 w-4"
-          >
-            <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" />
-            <path d="M9 12l2 2 4-4" />
-          </svg>
+        <legend className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-green-700">
+          <Icon name="shield" className="w-5 h-5" />
           Your party avoids
         </legend>
         {selected.length > 0 && (
           <button
             type="button"
             onClick={onClear}
-            className="text-sm font-medium text-stone-600 underline hover:text-green-700 cursor-pointer motion-safe:animate-pop-in"
+            className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-medium text-stone-600 transition-colors hover:bg-stone-100 hover:text-green-700 cursor-pointer motion-safe:animate-pop-in"
           >
+            <Icon name="close" className="w-4 h-4" />
             Clear
           </button>
         )}
@@ -61,7 +51,7 @@ export default function AllergenFilter({
       )}
 
       {allergens && (
-        <div role="group" aria-label="Allergens to avoid" className="mt-2 flex flex-wrap gap-2">
+        <div role="group" aria-label="Allergens to avoid" className="mt-3 flex flex-wrap gap-2">
           {allergens.map((allergen) => {
             const active = selected.includes(allergen.id);
             return (
@@ -77,14 +67,14 @@ export default function AllergenFilter({
                 }`}
               >
                 {allergen.name}
-                {active && <span aria-hidden="true">✕</span>}
+                {active && <Icon name="close" className="w-4 h-4" />}
               </button>
             );
           })}
         </div>
       )}
 
-      <p className="mt-2 text-xs text-stone-500">
+      <p className="mt-3 text-sm text-stone-500">
         Pick the allergens of your party to see which menus suit you.
       </p>
     </fieldset>

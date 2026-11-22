@@ -3,8 +3,10 @@ import backgroundImage from "../assets/BackgroundMountainHut.jpeg";
 
 const widths = {
   md: "max-w-md", // login
+  xl: "max-w-xl", // booking confirmation
   "2xl": "max-w-2xl", // register
-  "4xl": "max-w-4xl", // booking
+  "4xl": "max-w-4xl",
+  "5xl": "max-w-5xl", // booking
 } as const;
 
 interface AuthShellProps {

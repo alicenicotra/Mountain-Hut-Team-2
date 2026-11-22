@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import AuthShell from "../../shared/components/AuthShell.tsx";
+import Icon from "../../shared/components/Icon.tsx";
 import { todayString } from "../../shared/utils/date.ts";
 import { getAllergens } from "../../booking/api/allergens-api.ts";
 import type { Allergen } from "../../booking/types/booking.ts";
@@ -29,23 +30,8 @@ interface LoadedMeals {
   error: string | null;
 }
 
-function ClockIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-5 w-5"
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" />
-    </svg>
-  );
-}
+// Decorative only: afternoon meals and later get a moon, earlier ones a sun
+const isEvening = (from: string) => Number(from.slice(0, 2)) >= 16;
 
 function EmptyPlate() {
   return (
@@ -61,15 +47,17 @@ function EmptyPlate() {
 function SuitSummary({ suiting, total }: { suiting: number; total: number }) {
   if (suiting === 0) {
     return (
-      <p className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-base font-medium text-red-700 motion-safe:animate-pop-in">
-        <span aria-hidden="true">✕</span>
+      <p className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-base font-medium text-red-700 motion-safe:animate-pop-in">
+        <Icon name="warning" className="w-5 h-5" />
         No menu suits your party, so ask the hut staff about alternatives.
       </p>
     );
   }
   return (
     <p className="flex items-center gap-2 text-base text-stone-600 motion-safe:animate-pop-in">
-      <span aria-hidden="true">✓</span>
+      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-700">
+        <Icon name="check" className="w-4 h-4" />
+      </span>
       {suiting} of {total} {total === 1 ? "menu suits" : "menus suit"} your party
     </p>
   );
@@ -129,12 +117,12 @@ export default function MealsPage() {
 
   return (
     <AuthShell
-      width="4xl"
+      width="5xl"
       badge="Hut kitchen"
       title="Meal times & menus"
       subtitle="See when the hut serves meals and what's on the menu, and find the options that suit your party."
     >
-      <div className="space-y-6">
+      <div className="space-y-7">
         {/* Day */}
         <div className="flex flex-wrap items-end gap-3">
           <div role="group" aria-label="Day" className="flex flex-wrap gap-2">
@@ -147,7 +135,7 @@ export default function MealsPage() {
                   aria-pressed={selected}
                   aria-label={dayChipLabel(day, today)}
                   onClick={() => setDate(day)}
-                  className={`w-14 rounded-xl px-2 py-2 text-center transition duration-200 cursor-pointer ${
+                  className={`w-16 rounded-xl px-2 py-2.5 text-center transition duration-200 cursor-pointer ${
                     selected
                       ? "bg-green-600 text-white shadow-md motion-safe:scale-105"
                       : "border border-stone-200 bg-white text-stone-700 hover:border-green-600 hover:text-green-700 motion-safe:hover:-translate-y-0.5"
@@ -160,19 +148,20 @@ export default function MealsPage() {
                   >
                     {day === today ? "Today" : weekdayShort(day)}
                   </span>
-                  <span className="block text-xl font-semibold leading-tight">{dayNumber(day)}</span>
+                  <span className="block text-2xl font-semibold leading-tight">{dayNumber(day)}</span>
                 </button>
               );
             })}
           </div>
           <label className="ml-auto flex items-center gap-2 text-base text-stone-600">
+            <Icon name="calendar" className="w-5 h-5 text-green-700" />
             Other day
             <input
               type="date"
               value={date}
               min={today}
               onChange={(e) => e.target.value && setDate(e.target.value)}
-              className="rounded-lg border border-stone-300 bg-white px-2 py-1.5 text-stone-900"
+              className="h-10 rounded-lg border border-stone-300 bg-white px-3 text-stone-900 shadow-xs cursor-pointer transition-colors hover:border-green-600 focus:outline-hidden focus:border-green-600 focus:ring-2 focus:ring-green-600/25"
             />
           </label>
         </div>
@@ -185,8 +174,11 @@ export default function MealsPage() {
           onClear={() => setAvoid([])}
         />
 
-        <div className="flex items-baseline justify-between gap-3 border-b border-stone-200 pb-2">
-          <h2 className="text-xl font-semibold text-stone-900">{longDayLabel(date)}</h2>
+        <div className="flex items-center justify-between gap-3 border-b border-stone-200 pb-3">
+          <h2 key={date} className="flex items-center gap-2 text-xl font-semibold text-stone-900 motion-safe:animate-fade-up">
+            <Icon name="calendar" className="w-6 h-6 text-green-700" />
+            {longDayLabel(date)}
+          </h2>
           {mealCount > 0 && (
             <p className="text-base text-stone-500">
               {mealCount} {mealCount === 1 ? "meal time" : "meal times"}
@@ -205,14 +197,15 @@ export default function MealsPage() {
         {current?.error && (
           <div
             role="alert"
-            className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700"
+            className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700"
           >
+            <Icon name="warning" className="w-5 h-5" />
             Could not load the meals: {current.error}
           </div>
         )}
 
         {current && !current.error && current.meals.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-stone-300 px-4 py-8 text-center motion-safe:animate-fade-up">
+          <div className="rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50/60 px-4 py-10 text-center motion-safe:animate-fade-up">
             <EmptyPlate />
             <p className="mt-2 text-base text-stone-500">No meal times on this day.</p>
           </div>
@@ -223,20 +216,26 @@ export default function MealsPage() {
           {current?.meals.map((meal, i) => {
             const menus = sortBySuitability(meal.menus, avoid);
             const suiting = meal.menus.filter((m) => menuSuits(m, avoid)).length;
+            const evening = isEvening(meal.from);
             return (
               <section
                 key={meal.slotId}
                 aria-label={`Meal ${meal.from}–${meal.to}`}
                 style={delay(i)}
-                className="space-y-3 motion-safe:animate-fade-up"
+                className="space-y-4 motion-safe:animate-fade-up"
               >
                 <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-stone-100 text-stone-700">
-                    <ClockIcon />
+                  <span
+                    className={`flex h-12 w-12 items-center justify-center rounded-xl ${
+                      evening ? "bg-indigo-50 text-indigo-600" : "bg-amber-50 text-amber-600"
+                    }`}
+                  >
+                    <Icon name={evening ? "moon" : "sun"} className="w-7 h-7" />
                   </span>
                   <div>
-                    <h3 className="text-base font-semibold text-stone-900">{mealLabel(meal.from)}</h3>
-                    <p className="text-base text-stone-500">
+                    <h3 className="text-lg font-semibold text-stone-900">{mealLabel(meal.from)}</h3>
+                    <p className="flex items-center gap-1.5 text-base text-stone-500">
+                      <Icon name="clock" className="w-4 h-4" />
                       {meal.from}–{meal.to}
                       {meal.menus.length > 0 &&
                         ` · ${meal.menus.length} ${meal.menus.length === 1 ? "menu" : "menus"}`}
@@ -249,7 +248,8 @@ export default function MealsPage() {
                 )}
 
                 {meal.menus.length === 0 ? (
-                  <p className="rounded-lg border border-dashed border-stone-300 px-4 py-4 text-base text-stone-500">
+                  <p className="flex items-center gap-2 rounded-xl border-2 border-dashed border-stone-300 bg-stone-50/60 px-4 py-5 text-base text-stone-500">
+                    <Icon name="book" className="w-5 h-5 text-stone-400" />
                     The menu for this meal time hasn't been announced yet.
                   </p>
                 ) : (

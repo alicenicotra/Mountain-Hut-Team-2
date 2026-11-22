@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getSlots } from "../api/slots-api.ts";
 import { formatDay, shiftDate } from "../../shared/utils/date.ts";
 import type { TimeSlot } from "../types/slot.ts";
+import Icon from "../../shared/components/Icon.tsx";
 
 interface CopyTablesPickerProps {
   // Day of the slot being created: the picker starts from the day before
@@ -16,7 +17,8 @@ interface SlotsResult {
   error: string | null;
 }
 
-const arrow = "px-2 py-1 rounded border border-sky-200 bg-white text-sm hover:border-sky-500";
+const arrow =
+  "flex items-center justify-center w-9 h-9 rounded-lg border border-sky-200 bg-white text-sky-900 transition-colors hover:border-sky-500 hover:bg-sky-100 cursor-pointer";
 
 export default function CopyTablesPicker({ targetDate, onPick, onClose }: CopyTablesPickerProps) {
   const [date, setDate] = useState(() => shiftDate(targetDate, -1));
@@ -41,16 +43,19 @@ export default function CopyTablesPicker({ targetDate, onPick, onClose }: CopyTa
   const loading = result?.date !== date;
 
   return (
-    <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-medium text-sky-900">Copy from</span>
+    <div className="rounded-xl border border-sky-200 bg-sky-50 p-4 space-y-4 shadow-inner animate-fade-up">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="flex items-center gap-2 text-base font-semibold text-sky-900">
+          <Icon name="copy" className="w-5 h-5" />
+          Copy from
+        </span>
         <button
           type="button"
           aria-label="Previous day"
           onClick={() => setDate(shiftDate(date, -1))}
           className={arrow}
         >
-          ←
+          <Icon name="chevronLeft" className="w-5 h-5" />
         </button>
         <input
           type="date"
@@ -59,7 +64,7 @@ export default function CopyTablesPicker({ targetDate, onPick, onClose }: CopyTa
           onChange={(e) => {
             if (e.target.value) setDate(e.target.value);
           }}
-          className="border border-sky-200 rounded px-2 py-1 bg-white text-sm"
+          className="h-9 border border-sky-200 rounded-lg px-2 bg-white text-base cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-sky-500/30"
         />
         <button
           type="button"
@@ -67,39 +72,39 @@ export default function CopyTablesPicker({ targetDate, onPick, onClose }: CopyTa
           onClick={() => setDate(shiftDate(date, 1))}
           className={arrow}
         >
-          →
+          <Icon name="chevronRight" className="w-5 h-5" />
         </button>
-        <span className="text-sm text-sky-900">{formatDay(date, "short")}</span>
+        <span className="text-base text-sky-900">{formatDay(date, "short")}</span>
         <button
           type="button"
           aria-label="Close"
           onClick={onClose}
-          className="ml-auto px-2 text-sky-900 hover:text-sky-600"
+          className="ml-auto flex items-center justify-center w-9 h-9 rounded-full text-sky-900 transition-colors hover:bg-sky-100 hover:text-sky-600 cursor-pointer"
         >
-          ✕
+          <Icon name="close" className="w-5 h-5" />
         </button>
       </div>
 
       {loading ? (
-        <p className="text-sm text-stone-500">Loading…</p>
+        <p className="text-base text-stone-500">Loading…</p>
       ) : result.error ? (
-        <p className="text-sm text-red-600">Error: {result.error}</p>
+        <p className="text-base text-red-600">Error: {result.error}</p>
       ) : result.slots.length === 0 ? (
-        <p className="text-sm text-stone-500">No slots on this day</p>
+        <p className="text-base text-stone-500">No slots on this day</p>
       ) : (
-        <div className="flex flex-wrap gap-2">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {result.slots.map((slot) => (
             <button
               key={slot.id}
               type="button"
               disabled={slot.tables.length === 0}
               onClick={() => onPick(slot)}
-              className="px-3 py-2 rounded-lg border border-sky-300 bg-white text-left text-sm hover:border-sky-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-2.5 rounded-lg border border-sky-200 bg-white text-left text-base shadow-xs transition-all hover:border-sky-500 hover:shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-sky-200 disabled:hover:shadow-xs"
             >
-              <span className="block font-medium">
+              <span className="block font-semibold text-stone-900">
                 {slot.from}–{slot.to} · {slot.totalSeats} seats
               </span>
-              <span className="block text-xs text-stone-500">
+              <span className="block text-sm text-stone-500">
                 {slot.tables.length > 0
                   ? slot.tables.map((t) => t.code).join(", ")
                   : "No tables"}

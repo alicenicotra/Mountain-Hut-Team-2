@@ -9,13 +9,13 @@ export default function Step({ number, title, actions, children }: {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-3">
-        <span className="w-6 h-6 rounded-full bg-green-700 text-white text-xs font-semibold flex items-center justify-center">
+        <span className="w-7 h-7 rounded-full bg-linear-to-br from-green-600 to-green-800 text-white text-sm font-bold flex items-center justify-center shadow-sm">
           {number}
         </span>
-        <h3 className="font-semibold">{title}</h3>
-        {actions && <div className="ml-auto flex flex-wrap gap-3">{actions}</div>}
+        <h3 className="text-base font-semibold text-stone-900">{title}</h3>
+        {actions && <div className="ml-auto flex flex-wrap gap-2">{actions}</div>}
       </div>
-      {children}
+      <div className="sm:pl-10 space-y-3">{children}</div>
     </div>
   );
 }

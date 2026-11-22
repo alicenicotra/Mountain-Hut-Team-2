@@ -1,3 +1,5 @@
+import Icon from "../../shared/components/Icon.tsx";
+
 const MAX_DESCRIPTION = 1000;
 
 interface RequirementsFieldsProps {
@@ -17,12 +19,13 @@ export default function RequirementsFields({
 }: RequirementsFieldsProps) {
   return (
     <div className="space-y-3">
-      <p className="block text-xs font-semibold uppercase tracking-wider text-green-700">
+      <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-green-700">
+        <Icon name="info" className="w-5 h-5" />
         Allergies, intolerances &amp; notes
       </p>
 
       <label
-        className={`flex items-center gap-2.5 rounded-lg border px-3.5 py-2.5 text-sm cursor-pointer transition ${
+        className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-base cursor-pointer transition ${
           enabled
             ? "border-green-600 bg-green-50 text-green-900"
             : "border-stone-300 bg-white text-stone-700 hover:border-green-600"
@@ -32,16 +35,16 @@ export default function RequirementsFields({
           type="checkbox"
           checked={enabled}
           onChange={(e) => onToggle(e.target.checked)}
-          className="h-4 w-4 accent-green-600"
+          className="h-5 w-5 accent-green-600"
         />
         I have allergies, intolerances or special requests
       </label>
 
       {enabled && (
-        <div>
+        <div className="animate-fade-up">
           <label
             htmlFor={textareaId}
-            className="mb-1.5 block text-xs font-medium text-stone-600"
+            className="mb-1.5 block text-sm font-medium text-stone-600"
           >
             Specify allergies, intolerances or notes
           </label>
@@ -52,9 +55,9 @@ export default function RequirementsFields({
             value={description}
             onChange={(e) => onDescriptionChange(e.target.value)}
             placeholder="e.g. peanut allergy, lactose intolerance, vegetarian, high chair"
-            className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 placeholder:text-stone-400 shadow-xs transition focus:outline-hidden focus:border-green-600 focus:ring-2 focus:ring-green-600/30"
+            className="w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-base text-stone-900 placeholder:text-stone-400 shadow-xs transition focus:outline-hidden focus:border-green-600 focus:ring-2 focus:ring-green-600/30"
           />
-          <p className="mt-1 text-right text-xs text-stone-400">
+          <p className="mt-1 text-right text-sm text-stone-400">
             {description.length}/{MAX_DESCRIPTION}
           </p>
         </div>

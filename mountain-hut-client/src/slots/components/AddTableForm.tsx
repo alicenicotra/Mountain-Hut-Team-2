@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { createTable } from "../api/slots-api.ts";
 import type { Table } from "../types/slot.ts";
+import Icon from "../../shared/components/Icon.tsx";
+import { inputBase, secondaryButton } from "../../shared/styles.ts";
 
 interface AddTableFormProps {
   onCreated: (table: Table) => void;
@@ -9,7 +11,7 @@ interface AddTableFormProps {
 // MH-89: keep in sync with the limit in the backend table schema
 const MAX_TABLE_SEATS = 20;
 
-const inputClass = "border border-stone-300 rounded px-2 py-1 bg-white";
+const labelClass = "flex flex-col gap-1 text-sm font-medium text-stone-700";
 
 export default function AddTableForm({ onCreated }: AddTableFormProps) {
   const [code, setCode] = useState("");
@@ -42,19 +44,19 @@ export default function AddTableForm({ onCreated }: AddTableFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="flex gap-4 items-end">
-        <label className="flex flex-col text-sm">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="flex flex-wrap gap-4 items-end">
+        <label className={labelClass}>
           Table code
           <input
             required
             maxLength={20}
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            className={`${inputClass} w-28`}
+            className={`${inputBase} w-32`}
           />
         </label>
-        <label className="flex flex-col text-sm">
+        <label className={labelClass}>
           Seats
           <input
             type="number"
@@ -69,18 +71,24 @@ export default function AddTableForm({ onCreated }: AddTableFormProps) {
               if (["e", "E", "+", "-", ".", ","].includes(e.key)) e.preventDefault();
             }}
             onChange={(e) => setSeats(e.target.value.replace(/\D/g, "").slice(0, 2))}
-            className={`${inputClass} w-20`}
+            className={`${inputBase} w-24`}
           />
         </label>
         <button
           type="submit"
           disabled={submitting}
-          className="px-3 py-1.5 rounded border border-green-700 text-green-700 hover:bg-green-50 disabled:text-stone-400 disabled:border-stone-300"
+          className={secondaryButton}
         >
+          <Icon name="plus" className="w-5 h-5" />
           {submitting ? "Adding…" : "Add table"}
         </button>
       </div>
-      {error && <p className="text-sm text-red-600">Error: {error}</p>}
+      {error && (
+        <p className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <Icon name="warning" className="w-5 h-5" />
+          <span>Error: {error}</span>
+        </p>
+      )}
     </form>
   );
 }

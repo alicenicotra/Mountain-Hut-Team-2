@@ -6,11 +6,17 @@ import { changeBooking } from "../api/bookings-api.ts";
 import { ApiError } from "../../shared/api/client.ts";
 import { slotStartMs } from "../rules/booking-rules.ts";
 import RequirementsFields from "./RequirementsFields";
+import Icon from "../../shared/components/Icon.tsx";
 import type { SlotAvailability } from "../types/availability.ts";
 import type { ChangeBookingRequest, MyBooking } from "../types/booking.ts";
 
 const MAX_PARTY_SIZE = 20; // same limit as the booking page
 const SLOT_CUTOFF_MS = 2 * 60 * 60 * 1000;
+
+const sectionLabel = "mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-green-700";
+
+// Decorative only: afternoon slots and later get a moon, earlier ones a sun
+const isEvening = (from: string) => Number(from.slice(0, 2)) >= 16;
 
 function toDateString(d: Date): string {
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -145,10 +151,18 @@ export default function ChangeBookingPanel({ booking, onCancel, onChanged }: Cha
   }
 
   return (
-    <div className="mt-4 border-t border-stone-200 pt-4 space-y-5">
-      <div className="grid gap-5 md:grid-cols-[auto_1fr] md:gap-6">
+    <div className="mt-5 rounded-2xl border border-green-100 bg-green-50/40 p-5 space-y-6 animate-fade-up">
+      <p className="flex items-center gap-2 text-base font-semibold text-stone-900">
+        <Icon name="pencil" className="w-5 h-5 text-green-700" />
+        Change this booking
+      </p>
+      <div className="grid gap-6 md:grid-cols-[auto_1fr] md:gap-8">
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-green-700">New date</p>
+          <p className={sectionLabel}>
+            <Icon name="calendar" className="w-5 h-5" />
+            New date
+          </p>
+          <div className="booking-calendar flex justify-center rounded-2xl border border-stone-200 bg-white p-3">
           <DayPicker
             mode="single"
             selected={fromDateString(date)}
@@ -157,14 +171,16 @@ export default function ChangeBookingPanel({ booking, onCancel, onChanged }: Cha
             defaultMonth={fromDateString(booking.date)}
             weekStartsOn={1}
           />
+          </div>
         </div>
 
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-6">
           <div>
             <label
               htmlFor={`partySize-${booking.id}`}
-              className="mb-2 block text-xs font-semibold uppercase tracking-wider text-green-700"
+              className={sectionLabel}
             >
+              <Icon name="users" className="w-5 h-5" />
               Party size
             </label>
             <input
@@ -174,50 +190,61 @@ export default function ChangeBookingPanel({ booking, onCancel, onChanged }: Cha
               max={MAX_PARTY_SIZE}
               value={partySize === 0 ? "" : partySize}
               onChange={(e) => handlePartySizeChange(Number(e.target.value))}
-              className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-stone-900 shadow-xs transition focus:outline-hidden focus:border-green-600 focus:ring-2 focus:ring-green-600/30"
+              className="w-full h-14 rounded-xl border border-stone-300 bg-white px-4 text-xl font-semibold text-stone-900 shadow-xs transition focus:outline-hidden focus:border-green-600 focus:ring-2 focus:ring-green-600/30"
             />
           </div>
 
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-green-700">Time slot</p>
+            <p className={sectionLabel}>
+              <Icon name="clock" className="w-5 h-5" />
+              Time slot
+            </p>
 
             {slotsLoading && (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 {[0, 1].map((i) => (
-                  <div key={i} className="h-12 rounded-lg bg-stone-200 animate-pulse" />
+                  <div key={i} className="h-20 rounded-xl bg-stone-200 animate-pulse" />
                 ))}
               </div>
             )}
 
             {current?.error && (
-              <p className="text-sm text-red-600">Could not load slots: {current.error}</p>
+              <p className="flex items-center gap-2 text-sm text-red-600">
+                <Icon name="warning" className="w-5 h-5" />
+                Could not load slots: {current.error}
+              </p>
             )}
 
             {!slotsLoading && !current?.error && slots.length === 0 && (
-              <p className="rounded-lg border border-dashed border-stone-300 px-4 py-4 text-center text-sm text-stone-500">
+              <p className="rounded-xl border-2 border-dashed border-stone-300 bg-white px-4 py-6 text-center text-base text-stone-500">
                 No available slots for this date and party size.
               </p>
             )}
 
             {!slotsLoading && slots.length > 0 && (
-              <div role="group" aria-label="Time slot" className="grid grid-cols-2 gap-2">
+              <div role="group" aria-label="Time slot" className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {slots.map((s) => {
                   const selected = slotId === s.slotId;
                   const isCurrent = s.slotId === booking.slotId;
+                  const evening = isEvening(s.from);
                   return (
                     <button
                       key={s.slotId}
                       type="button"
                       aria-pressed={selected}
                       onClick={() => setSlotId(s.slotId)}
-                      className={`flex flex-col items-center rounded-lg px-3 py-2 transition cursor-pointer ${
+                      className={`flex flex-col items-center gap-1 rounded-xl px-3 py-3.5 transition-all cursor-pointer ${
                         selected
                           ? "bg-green-600 text-white shadow-md ring-2 ring-green-600 ring-offset-2"
-                          : "bg-white border border-stone-300 text-stone-800 hover:border-green-600 hover:text-green-700"
+                          : "bg-white border border-stone-300 text-stone-800 hover:-translate-y-0.5 hover:shadow-md hover:border-green-600 hover:text-green-700"
                       }`}
                     >
-                      <span className="font-semibold">{s.from}–{s.to}</span>
-                      <span className={`text-xs ${selected ? "text-green-100" : "text-stone-500"}`}>
+                      <Icon
+                        name={evening ? "moon" : "sun"}
+                        className={`w-6 h-6 ${selected ? "text-white" : evening ? "text-indigo-500" : "text-amber-500"}`}
+                      />
+                      <span className="text-lg font-semibold">{s.from}–{s.to}</span>
+                      <span className={`text-sm ${selected ? "text-green-100" : "text-stone-500"}`}>
                         {isCurrent ? "current slot" : `${s.availableSeats} seats free`}
                       </span>
                     </button>
@@ -244,16 +271,17 @@ export default function ChangeBookingPanel({ booking, onCancel, onChanged }: Cha
       </div>
 
       {error && (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
+        <div role="alert" className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
+          <Icon name="warning" className="w-5 h-5" />
           {error}
         </div>
       )}
 
-      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <button
           type="button"
           onClick={onCancel}
-          className="px-5 py-2.5 rounded-lg border border-stone-300 bg-white font-semibold text-stone-700 hover:bg-stone-50 transition-colors cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-stone-300 bg-white font-semibold text-stone-700 hover:bg-stone-50 transition-colors cursor-pointer"
         >
           Cancel
         </button>
@@ -261,8 +289,9 @@ export default function ChangeBookingPanel({ booking, onCancel, onChanged }: Cha
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="px-5 py-2.5 rounded-lg bg-green-600 font-semibold text-white shadow-lg hover:bg-green-500 active:bg-green-700 disabled:opacity-50 transition-colors cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-green-600 font-semibold text-white shadow-lg hover:bg-green-500 active:bg-green-700 disabled:opacity-50 transition-all hover:shadow-xl cursor-pointer"
         >
+          <Icon name="check" className="w-5 h-5" />
           {saving ? "Saving…" : "Save changes"}
         </button>
       </div>

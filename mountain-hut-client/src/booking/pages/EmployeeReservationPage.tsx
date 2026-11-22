@@ -5,6 +5,9 @@ import { createHiker } from "../api/hikers-api.ts";
 import HikerSearch from "../components/HikerSearch.tsx";
 import DayBar from "../../shared/components/DayBar.tsx";
 import Step from "../../shared/components/Step.tsx";
+import PageHeader from "../../shared/components/PageHeader.tsx";
+import Icon, { type IconName } from "../../shared/components/Icon.tsx";
+import { inputBase, primaryButton, sectionCard as card } from "../../shared/styles.ts";
 import { ApiError } from "../../shared/api/client.ts";
 import { formatDay, slotHasStarted, todayString } from "../../shared/utils/date.ts";
 import type { SlotAvailability } from "../types/availability.ts";
@@ -13,10 +16,10 @@ import type { HikerMatch, NewHiker } from "../types/hiker.ts";
 
 type HikerMode = "existing" | "account" | "temporary";
 
-const HIKER_MODES: { value: HikerMode; label: string }[] = [
-  { value: "existing", label: "Existing hiker" },
-  { value: "account", label: "New account" },
-  { value: "temporary", label: "Just a name" },
+const HIKER_MODES: { value: HikerMode; label: string; icon: IconName }[] = [
+  { value: "existing", label: "Existing hiker", icon: "search" },
+  { value: "account", label: "New account", icon: "plus" },
+  { value: "temporary", label: "Just a name", icon: "pencil" },
 ];
 
 // Same limit as the backend
@@ -54,10 +57,10 @@ interface QuickDetails {
 const NO_ACCOUNT: AccountDetails = { name: "", surname: "", email: "", phoneNumber: "" };
 const NO_QUICK: QuickDetails = { name: "", phoneNumber: "" };
 
-const card = "bg-white border border-stone-200 rounded-lg p-5";
-const inputClass = "mt-1 w-full border border-stone-300 rounded px-3 py-2 bg-white";
-const primaryButton =
-  "px-5 py-2.5 rounded bg-green-700 text-white font-medium hover:bg-green-800 disabled:bg-stone-300";
+const inputClass = `mt-1 w-full ${inputBase}`;
+
+// Decorative only: afternoon slots and later get a moon, earlier ones a sun
+const isEvening = (from: string) => Number(from.slice(0, 2)) >= 16;
 
 const seats = (n: number) => `${n} ${n === 1 ? "seat" : "seats"}`;
 const people = (n: number) => `${n} ${n === 1 ? "person" : "people"}`;
@@ -79,7 +82,7 @@ function Field({
   required?: boolean;
 }) {
   return (
-    <label className="flex flex-col text-sm">
+    <label className="flex flex-col text-sm font-medium text-stone-700">
       {label}
       <input
         type={type}
@@ -95,14 +98,18 @@ function Field({
 // The password of a "New account", to tell the hiker at the desk or on the phone
 function TemporaryPassword({ password, email }: { password: string; email: string | null }) {
   return (
-    <div role="status" className="rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-1">
-      <p>
-        Temporary password: <span className="font-mono font-semibold">{password}</span>
+    <div role="status" className="flex gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 animate-pop-in">
+      <Icon name="lock" className="w-6 h-6 text-amber-700" />
+      <div className="space-y-1">
+      <p className="text-base">
+        Temporary password:{" "}
+        <span className="rounded-md bg-white px-2 py-0.5 font-mono text-lg font-semibold tracking-wider text-stone-900 shadow-xs">{password}</span>
       </p>
       <p className="text-sm text-stone-700">
         Tell it to the hiker: they will have to change it at their first login.
         {email && ` It was also sent to ${email}.`}
       </p>
+      </div>
     </div>
   );
 }
@@ -124,19 +131,32 @@ function ConfirmedReservation({ confirmed, onNew }: { confirmed: Confirmed; onNe
     slot.tables.find((t) => t.tableId === tableId)?.code ?? `#${tableId}`;
 
   return (
-    <div className={`${card} space-y-4`}>
-      <p className="text-lg font-semibold text-green-700">✓ Reservation confirmed</p>
-      <p className="text-2xl font-semibold">
+    <div className={`${card} space-y-5 text-center`}>
+      <div className="flex justify-center">
+        <span className="relative flex items-center justify-center w-20 h-20 rounded-full bg-green-100 text-green-700 animate-pop-in">
+          <span className="absolute inset-0 rounded-full bg-green-200 animate-ping opacity-40" aria-hidden="true" />
+          <Icon name="check" className="relative w-10 h-10" />
+        </span>
+      </div>
+      <p className="text-xl font-semibold text-green-700">✓ Reservation confirmed</p>
+      <p className="inline-flex items-center gap-2 rounded-xl bg-green-50 px-4 py-2 text-2xl font-bold text-stone-900">
+        <Icon name="tables" className="w-6 h-6 text-green-700" />
         {booking.reservations
           .map((r) => `${tableCode(r.tableId)} · ${seats(r.seats)}`)
           .join(", ")}
       </p>
-      <p className="text-stone-600">
+      <p className="flex items-center justify-center gap-2 text-base text-stone-600">
+        <Icon name="users" className="w-5 h-5 text-stone-400" />
         {hiker.name} {hiker.surname} · {people(booking.partySize)} · {formatDay(date, "short")},{" "}
         {slot.from}–{slot.to}
       </p>
-      {temporaryPassword && <TemporaryPassword password={temporaryPassword} email={hiker.email} />}
+      {temporaryPassword && (
+        <div className="text-left">
+          <TemporaryPassword password={temporaryPassword} email={hiker.email} />
+        </div>
+      )}
       <button type="button" onClick={onNew} className={primaryButton}>
+        <Icon name="plus" className="w-5 h-5" />
         New reservation
       </button>
     </div>
@@ -317,21 +337,26 @@ export default function EmployeeReservationPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">New reservation</h1>
-        <p className="text-stone-600">For hikers who call, write or arrive at the hut.</p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon="calendar"
+        eyebrow="Staff · Front desk"
+        title="New reservation"
+        subtitle="For hikers who call, write or arrive at the hut."
+      />
 
       {confirmed ? (
         <ConfirmedReservation confirmed={confirmed} onNew={startNew} />
       ) : (
-        <form onSubmit={handleSubmit} className={`${card} space-y-6`}>
+        <form onSubmit={handleSubmit} className={`${card} space-y-8`}>
           <Step number={1} title="When and how many">
             <DayBar date={date} onChange={changeDate} />
 
-            <label className="flex flex-col text-sm w-28">
-              People
+            <label className="flex flex-col text-sm font-medium text-stone-700 w-36">
+              <span className="flex items-center gap-1.5">
+                <Icon name="users" className="w-4 h-4 text-green-700" />
+                People
+              </span>
               <input
                 type="number"
                 min={1}
@@ -344,13 +369,26 @@ export default function EmployeeReservationPage() {
             </label>
 
             {!validParty && (
-              <p className="text-sm text-amber-700">Enter a number of people from 1 to {MAX_PARTY_SIZE}</p>
+              <p className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-800">
+                <Icon name="warning" className="w-5 h-5" />
+                Enter a number of people from 1 to {MAX_PARTY_SIZE}</p>
             )}
-            {validParty && !current && <p className="text-stone-500">Loading…</p>}
-            {current?.error && <p className="text-red-600">Error: {current.error}</p>}
+            {validParty && !current && (
+              <div className="flex items-center gap-3 py-2 text-stone-500">
+                <span className="w-5 h-5 rounded-full border-2 border-green-600 border-t-transparent animate-spin" aria-hidden="true" />
+                <p>Loading…</p>
+              </div>
+            )}
+            {current?.error && (
+              <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
+                <Icon name="warning" className="w-5 h-5" />
+                <p>Error: {current.error}</p>
+              </div>
+            )}
             {current && !current.error && slots.length === 0 && (
-              <div className="rounded-lg border-2 border-dashed border-stone-300 p-8 text-center text-stone-500">
-                No slots on this day
+              <div className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-stone-300 bg-stone-50/60 p-8 text-center text-stone-500">
+                <Icon name="calendar" className="w-8 h-8 text-stone-400" />
+                <p>No slots on this day</p>
               </div>
             )}
 
@@ -358,6 +396,7 @@ export default function EmployeeReservationPage() {
               <div role="group" aria-label="Time slot" className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {slots.map((slot) => {
                   const selected = slot.slotId === selectedSlot?.slotId;
+                  const evening = isEvening(slot.from);
                   return (
                     <button
                       key={slot.slotId}
@@ -365,17 +404,30 @@ export default function EmployeeReservationPage() {
                       aria-pressed={selected}
                       disabled={!bookable(slot)}
                       onClick={() => selectSlot(slot.slotId)}
-                      className={`rounded-lg border-2 p-3 text-left transition-colors disabled:bg-stone-100 disabled:border-stone-200 disabled:text-stone-400 ${
+                      className={`flex items-center gap-3 rounded-xl border-2 p-4 text-left transition-all cursor-pointer disabled:cursor-not-allowed disabled:bg-stone-100 disabled:border-stone-200 disabled:text-stone-400 ${
                         selected
-                          ? "border-green-600 bg-green-50"
-                          : "border-stone-200 bg-white hover:border-stone-400"
+                          ? "border-green-600 bg-green-50 shadow-sm"
+                          : "border-stone-200 bg-white hover:border-green-500 hover:shadow-md enabled:hover:-translate-y-0.5"
                       }`}
                     >
-                      <span className="block font-semibold">
+                      <span
+                        className={`flex items-center justify-center w-10 h-10 shrink-0 rounded-lg ${
+                          !bookable(slot)
+                            ? "bg-stone-200 text-stone-400"
+                            : evening
+                              ? "bg-indigo-50 text-indigo-600"
+                              : "bg-amber-50 text-amber-600"
+                        }`}
+                      >
+                        <Icon name={evening ? "moon" : "sun"} className="w-5 h-5" />
+                      </span>
+                      <span className="min-w-0">
+                      <span className="block text-lg font-semibold">
                         {slot.from}–{slot.to}
                       </span>
                       <span className="block text-sm">
                         {started(slot) ? "Started" : `${seats(slot.availableSeats)} free`}
+                      </span>
                       </span>
                     </button>
                   );
@@ -384,7 +436,8 @@ export default function EmployeeReservationPage() {
             )}
 
             {slots.length > 0 && !slots.some(bookable) && (
-              <p className="text-sm text-amber-700">
+              <p className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-800">
+                <Icon name="warning" className="w-5 h-5" />
                 No room for {people(party)} on this day: try another day
               </p>
             )}
@@ -399,12 +452,13 @@ export default function EmployeeReservationPage() {
                     type="button"
                     aria-pressed={mode === option.value}
                     onClick={() => changeMode(option.value)}
-                    className={`px-3 py-1.5 rounded-full border text-sm ${
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-base transition-all cursor-pointer active:scale-95 ${
                       mode === option.value
-                        ? "border-green-600 bg-green-50 text-green-800 font-medium"
+                        ? "border-green-600 bg-green-50 text-green-800 font-medium shadow-sm"
                         : "border-stone-300 bg-white hover:border-green-600"
                     }`}
                   >
+                    <Icon name={option.icon} className="w-4 h-4" />
                     {option.label}
                   </button>
                 ))}
@@ -413,9 +467,12 @@ export default function EmployeeReservationPage() {
               {mode === "existing" &&
                 (hiker ? (
                   <div className="space-y-3">
-                    <div className="flex flex-wrap items-center gap-3 rounded-lg border-2 border-green-600 bg-green-50 p-3">
+                    <div className="flex flex-wrap items-center gap-4 rounded-xl border-2 border-green-600 bg-green-50 p-4 animate-pop-in">
+                      <span className="flex items-center justify-center w-11 h-11 rounded-full bg-green-700 text-lg font-semibold text-white" aria-hidden="true">
+                        {hiker.name.charAt(0).toUpperCase()}
+                      </span>
                       <div>
-                        <p className="font-semibold">
+                        <p className="text-lg font-semibold">
                           {hiker.name} {hiker.surname}
                         </p>
                         <p className="text-sm text-stone-600">{contact(hiker)}</p>
@@ -423,8 +480,9 @@ export default function EmployeeReservationPage() {
                       <button
                         type="button"
                         onClick={() => chooseHiker(null)}
-                        className="ml-auto text-sm text-stone-600 hover:underline"
+                        className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-stone-600 transition-colors hover:bg-white hover:text-green-700 cursor-pointer"
                       >
+                        <Icon name="pencil" className="w-4 h-4" />
                         Change
                       </button>
                     </div>
@@ -441,13 +499,14 @@ export default function EmployeeReservationPage() {
               {mode === "account" && (
                 <fieldset className="space-y-3">
                   <legend className="sr-only">New account</legend>
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <Field label="Name" value={account.name} onChange={(v) => changeAccount("name", v)} required />
                     <Field label="Surname" value={account.surname} onChange={(v) => changeAccount("surname", v)} required />
                     <Field label="Email" type="email" value={account.email} onChange={(v) => changeAccount("email", v)} required />
                     <Field label="Mobile number" type="tel" value={account.phoneNumber} onChange={(v) => changeAccount("phoneNumber", v)} required />
                   </div>
-                  <p className="text-sm text-stone-500">
+                  <p className="flex items-center gap-2 text-sm text-stone-500">
+                    <Icon name="lock" className="w-4 h-4" />
                     A password is generated for the hiker: you'll see it after reserving.
                   </p>
                 </fieldset>
@@ -457,19 +516,24 @@ export default function EmployeeReservationPage() {
               {mode === "temporary" && (
                 <fieldset className="space-y-3">
                   <legend className="sr-only">Just a name</legend>
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <Field label="Name" value={quick.name} onChange={(v) => changeQuick("name", v)} required />
                     <Field label="Phone (optional)" type="tel" value={quick.phoneNumber} onChange={(v) => changeQuick("phoneNumber", v)} />
                   </div>
-                  <p className="text-sm text-stone-500">No account: this hiker won't be able to log in.</p>
+                  <p className="flex items-center gap-2 text-sm text-stone-500">
+                    <Icon name="info" className="w-4 h-4" />
+                    No account: this hiker won't be able to log in.</p>
                 </fieldset>
               )}
             </Step>
           )}
 
           {selectedSlot && (
-            <div className="flex flex-wrap items-center gap-4 border-t border-stone-200 pt-4">
-              <p>
+            <div className="flex flex-wrap items-center gap-4 rounded-xl border border-green-200 bg-linear-to-r from-green-50 to-white p-4 animate-fade-up">
+              <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-green-100 text-green-800">
+                <Icon name="calendar" className="w-5 h-5" />
+              </span>
+              <p className="text-base font-medium text-stone-800">
                 {formatDay(date, "short")}, {selectedSlot.from}–{selectedSlot.to} · {people(party)}
               </p>
               <button
@@ -482,7 +546,12 @@ export default function EmployeeReservationPage() {
             </div>
           )}
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && (
+            <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
+              <Icon name="warning" className="w-5 h-5" />
+              <p>{error}</p>
+            </div>
+          )}
         </form>
       )}
     </div>
