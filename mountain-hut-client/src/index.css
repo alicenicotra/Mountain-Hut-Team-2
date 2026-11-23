@@ -1,9 +1,56 @@
 @import "tailwindcss";
 
+@theme {
+  --animate-fade-up: fade-up 0.45s ease-out both;
+  --animate-pop-in: pop-in 0.25s ease-out both;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: scale(0.85);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+}
+
 :root .rdp-root {
   --rdp-accent-color: #15803d;            /* green-700 */
   --rdp-accent-background-color: #dcfce7; /* green-100 */
 }
+/* Booking calendar: larger day cells so dates are easy to read and click */
+.booking-calendar .rdp-root {
+  --rdp-day-height: 46px;
+  --rdp-day-width: 46px;
+  --rdp-day_button-height: 44px;
+  --rdp-day_button-width: 44px;
+  --rdp-nav-height: 2.75rem;
+  font-size: 1rem;
+}
+.booking-calendar .rdp-month_caption {
+  font-size: 1.125rem;
+}
+.booking-calendar .rdp-day_button {
+  transition: background-color 150ms, transform 150ms;
+}
+.booking-calendar .rdp-day:not(.rdp-disabled):not(.rdp-selected) .rdp-day_button:hover {
+  background-color: #f0fdf4; /* green-50 */
+  transform: scale(1.06);
+}
+
 :root {
   --hero-overlay-color: rgba(0, 0, 0, 0.60);
 }

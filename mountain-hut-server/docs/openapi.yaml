@@ -34,8 +34,16 @@ tags:
     description: Free seats in the slots of a day
   - name: Bookings
     description: Hikers' bookings
+  - name: Hikes
+    description: Registration of planned hikes and staff visibility
   - name: Allergens
     description: Allergens a hiker can report when booking
+  - name: Users
+    description: User search and management
+  - name: Dishes
+    description: Dishes offered by the hut
+  - name: Menus
+    description: Menus offered by the hut
 
 paths:
   /api/v1/auth/register:
@@ -134,7 +142,118 @@ paths:
               schema:
                 $ref: "#/components/schemas/Message"
 
-  /api/tables:
+  /api/v1/auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request password reset link
+      description: Sends an email with a reset link if the account exists. Always returns 200 to prevent email enumeration.
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: hiker@example.com
+      responses:
+        "200":
+          description: Request received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+
+  /api/v1/auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password with token
+      description: Resets user password using the token sent via email.
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, newPassword]
+              properties:
+                token:
+                  type: string
+                  example: 3b94a02...
+                newPassword:
+                  type: string
+                  minLength: 8
+                  example: newSecretPassword123
+      responses:
+        "200":
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "400":
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+
+  /api/v1/users:
+    get:
+      tags: [Users]
+      summary: Search users
+      description: |
+        Roles: `EMPLOYEE`, `MANAGER`. Searches users by name/surname, email, or phone number.
+      operationId: searchUsers
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: email
+          in: query
+          description: Search by email
+          schema:
+            type: string
+        - name: name
+          in: query
+          description: Search by first name
+          schema:
+            type: string
+        - name: surname
+          in: query
+          description: Search by surname
+          schema:
+            type: string
+        - name: phoneNumber
+          in: query
+          description: Search by phone number
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Matching users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: User Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+
+  /api/v1/tables:
     get:
       tags: [Tables]
       summary: List all tables
@@ -181,7 +300,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/slots:
+  /api/v1/slots:
     get:
       tags: [Slots]
       summary: List the slots of a day
@@ -242,7 +361,56 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/slots/{id}:
+  /api/v1/slots/copy-week:
+    post:
+      tags: [Slots]
+      summary: Repeat a week's slots and table allocations
+      description: |
+        Roles: `EMPLOYEE`, `MANAGER`. Copies slot times and existing table
+        associations from a Monday-Sunday source week into one or more
+        consecutive destination weeks. It does not copy table records,
+        reservations or menus. Existing destination slots (overlapping or not)
+        are replaced only when none has active bookings. Canceled bookings in
+        replaced slots are deleted. If any destination week has active bookings,
+        no destination week is modified (409).
+        Both start dates must be Mondays; the first destination Monday must
+        not be in the past. The source and destination periods cannot overlap.
+      operationId: copyWeeklySchedule
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CopyWeekRequest"
+      responses:
+        "201":
+          description: All requested weekly copies created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CopyWeekResponse"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: The source week has no slots
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: At least one destination slot has an active (non-canceled) booking; nothing is copied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/slots/{id}:
     get:
       tags: [Slots]
       summary: Get a slot
@@ -270,7 +438,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/availability:
+  /api/v1/availability:
     get:
       tags: [Availability]
       summary: Check the free seats of a day
@@ -308,7 +476,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/bookings:
+  /api/v1/bookings:
     post:
       tags: [Bookings]
       summary: Book a slot
@@ -353,7 +521,7 @@ paths:
         "409":
           $ref: "#/components/responses/BookingConflict"
 
-  /api/bookings/mine:
+  /api/v1/bookings/mine:
     get:
       tags: [Bookings]
       summary: List my bookings
@@ -375,7 +543,7 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
 
-  /api/bookings/{bookingId}:
+  /api/v1/bookings/{bookingId}:
     patch:
       tags: [Bookings]
       summary: Change my booking
@@ -390,7 +558,7 @@ paths:
         - name: bookingId
           in: path
           required: true
-          description: The `id` from `GET /api/bookings/mine`
+          description: The `id` from `GET /api/v1/bookings/mine`
           schema:
             type: integer
             minimum: 1
@@ -432,14 +600,60 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+    delete:
+      tags: [Bookings]
+      summary: Cancel a booking
+      description: |
+        Roles: `HIKER`. Cancels a booking before the slot starts. All table
+        reservations for this booking are set to `CANCELED`, releasing the seats.
+      operationId: cancelBooking
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          description: The `id` from `GET /api/v1/bookings/mine`
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Booking canceled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CanceledBooking"
+        "400":
+          description: Invalid booking id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: The booking does not exist or belongs to someone else
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: The booking is not `PLACED` or the time slot has already started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
-  /api/staff/bookings:
+  /api/v1/staff/bookings:
     post:
       tags: [Bookings]
       summary: Book a slot for a hiker
       description: |
         Roles: `EMPLOYEE`, `MANAGER`. Books for an existing hiker. Unlike hikers,
-        staff can book until the slot ends. No confirmation email is sent.
+        staff can book until the slot starts. No confirmation email is sent.
       operationId: createStaffBooking
       security:
         - sessionCookie: []
@@ -481,7 +695,77 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/allergens:
+  /api/v1/hikes:
+    post:
+      tags: [Hikes]
+      summary: Register my planned hike
+      description: 'Roles: `HIKER`. Departure must be in the future, return after departure. Date-times must contain Z or an explicit UTC offset.'
+      operationId: registerHike
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterHikeRequest"
+      responses:
+        "201":
+          description: Planned hike registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Hike"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    get:
+      tags: [Hikes]
+      summary: List hikes for hut staff
+      description: 'Roles: `EMPLOYEE`, `MANAGER`. Ordered by expected return; includes hiker contact details.'
+      operationId: listRegisteredHikes
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Registered hikes sorted by expected return time
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StaffHike"
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /api/v1/hikes/mine:
+    get:
+      tags: [Hikes]
+      summary: List my registered hikes
+      description: 'Roles: `HIKER`. The account is determined from the session, not request parameters.'
+      operationId: listMyHikes
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Hikes belonging only to the signed-in hiker
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Hike"
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /api/v1/allergens:
     get:
       tags: [Allergens]
       summary: List all allergens
@@ -496,6 +780,110 @@ paths:
                 items:
                   $ref: "#/components/schemas/Allergen"
 
+  /api/v1/dishes:
+    get:
+      tags: [Dishes]
+      summary: Get all dishes
+      operationId: getDishes
+      responses:
+        "200":
+          description: A list of all dishes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Dish"
+
+  /api/v1/menus:
+    get:
+      tags: [Menus]
+      summary: Get all menus, with the respective dishes.
+      operationId: getMenus
+      parameters:
+        - name: type
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/MenuType"
+      responses:
+        "200":
+          description: A list of menus
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Menu"
+    post:
+      tags: [Menus]
+      summary: Creates a new menu.
+      operationId: createMenu
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMenuRequest"
+      responses:
+        "201":
+          description: Menu created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateMenuResponse"
+
+  /api/v1/menus/{id}:
+    delete:
+      tags: [Menus]
+      summary: Deletes a menu.
+      description: "This is a soft delete: the menu isn't completely deleted from the database, just its type is set as CANCELED."
+      operationId: deleteMenu
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "204":
+          description: Menu deleted successfully
+        "404":
+          description: Menu not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/meals:
+    get:
+      tags: [Menus]
+      summary: Meal times of a day, with their menus, dishes and allergens
+      description: |
+        Open to every user, guests included (MH-11). Returns the time slots of
+        the date ordered by start time, each with the menus specified for it;
+        canceled menus are left out. Dishes are in serving order, each with its
+        allergens, and each menu also lists all the allergens of its dishes.
+      operationId: getMeals
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/Date"
+      responses:
+        "200":
+          description: The meal times of the day; empty if there are none
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MealSlot"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+   
 components:
   securitySchemes:
     sessionCookie:
@@ -607,7 +995,7 @@ components:
           type: string
         surname:
           type: string
-        phone_number:
+        phoneNumber:
           type: string
           nullable: true
         type:
@@ -631,7 +1019,7 @@ components:
         surname:
           type: string
           minLength: 1
-        phone_number:
+        phoneNumber:
           type: string
 
     LoginRequest:
@@ -713,6 +1101,127 @@ components:
           items:
             type: integer
             minimum: 1
+
+    CopyWeekRequest:
+      type: object
+      additionalProperties: false
+      required: [sourceWeekStart, targetWeekStart]
+      properties:
+        sourceWeekStart:
+          description: Monday of the source week; may be in the past
+          allOf:
+            - $ref: "#/components/schemas/Date"
+        targetWeekStart:
+          description: Monday of the first destination week; today or later
+          allOf:
+            - $ref: "#/components/schemas/Date"
+        weeks:
+          type: integer
+          minimum: 1
+          maximum: 12
+          default: 1
+          description: Number of consecutive destination weeks
+
+    CopyWeekResponse:
+      type: object
+      required: [sourceWeekStart, targetWeekStart, weeks, copiedSlots]
+      properties:
+        sourceWeekStart:
+          $ref: "#/components/schemas/Date"
+        targetWeekStart:
+          $ref: "#/components/schemas/Date"
+        weeks:
+          type: integer
+          minimum: 1
+        copiedSlots:
+          type: integer
+          minimum: 0
+          description: Total created slots across all destination weeks
+
+    RegisterHikeRequest:
+      type: object
+      additionalProperties: false
+      required: [departureAt, expectedReturnAt, destination, routeDescription]
+      properties:
+        departureAt:
+          type: string
+          format: date-time
+          description: ISO 8601 with Z or UTC offset; must be in the future
+          example: "2026-12-20T08:00:00+01:00"
+        expectedReturnAt:
+          type: string
+          format: date-time
+          description: ISO 8601 with Z or UTC offset; after departure
+          example: "2026-12-20T17:00:00+01:00"
+        destination:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: "Monviso summit"
+        routeDescription:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        intermediatePoints:
+          type: array
+          maxItems: 30
+          description: Optional names of intermediate passage points, in route order
+          items:
+            type: string
+            minLength: 1
+            maxLength: 200
+          example: ["Lago Chiaretto", "Viso Mozzo"]
+        emergencyContactPhone:
+          type: string
+          minLength: 3
+          maxLength: 40
+
+    Hike:
+      type: object
+      required: [id, userId, departureAt, expectedReturnAt, destination, routeDescription, intermediatePoints, emergencyContactPhone, createdAt]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        departureAt:
+          type: string
+          format: date-time
+        expectedReturnAt:
+          type: string
+          format: date-time
+        destination:
+          type: string
+        routeDescription:
+          type: string
+        intermediatePoints:
+          type: array
+          items:
+            type: string
+        emergencyContactPhone:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          description: SQLite creation timestamp (UTC)
+
+    StaffHike:
+      allOf:
+        - $ref: "#/components/schemas/Hike"
+        - type: object
+          required: [hiker]
+          properties:
+            hiker:
+              type: object
+              required: [name, surname, phoneNumber]
+              properties:
+                name:
+                  type: string
+                surname:
+                  type: string
+                phoneNumber:
+                  type: string
+                  nullable: true
 
     Availability:
       type: object
@@ -836,7 +1345,7 @@ components:
     ChangeBookingRequest:
       type: object
       additionalProperties: false
-      description: At least one of the two fields is required
+      description: At least one of the fields is required
       minProperties: 1
       properties:
         slotId:
@@ -846,6 +1355,10 @@ components:
           type: integer
           minimum: 1
           maximum: 1000
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
 
     CreatedBooking:
       type: object
@@ -896,7 +1409,7 @@ components:
 
     ChangedBooking:
       type: object
-      required: [bookingId, status, userId, slotId, partySize, reservations]
+      required: [bookingId, status, userId, slotId, partySize, description, reservations]
       properties:
         bookingId:
           type: integer
@@ -909,10 +1422,23 @@ components:
           type: integer
         partySize:
           type: integer
+        description:
+          type: string
+          nullable: true
         reservations:
           type: array
           items:
             $ref: "#/components/schemas/Reservation"
+
+    CanceledBooking:
+      type: object
+      required: [id, status]
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+          enum: [CANCELED]
 
     MyBooking:
       type: object
@@ -931,7 +1457,7 @@ components:
       properties:
         id:
           type: integer
-          description: The id to use in `PATCH /api/bookings/{bookingId}`
+          description: The id to use in `PATCH /api/v1/bookings/{bookingId}`
         date:
           $ref: "#/components/schemas/Date"
         slotId:
@@ -960,3 +1486,119 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Reservation"
+
+    DishCourse:
+      type: string
+      enum: [APPETIZER, MAIN, SIDE, DESSERT, BEVERAGE]
+
+    Dish:
+      type: object
+      required: [id, name, description, course]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        course:
+          $ref: "#/components/schemas/DishCourse"
+
+    MenuType:
+      type: string
+      enum: [TEMPLATE, MODIFIED, CANCELED]
+
+    Menu:
+      type: object
+      required: [id, name, type, dishes]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          $ref: "#/components/schemas/MenuType"
+        dishes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Dish"
+
+    CreateMenuRequest:
+      type: object
+      required: [name, type, dishes]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        type:
+          $ref: "#/components/schemas/MenuType"
+        dishes:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+
+    CreateMenuResponse:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: integer
+
+    MealDish:
+      type: object
+      required: [id, name, description, course, allergens]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        course:
+          $ref: "#/components/schemas/DishCourse"
+        allergens:
+          type: array
+          items:
+            $ref: "#/components/schemas/Allergen"
+
+    MealMenu:
+      type: object
+      required: [id, name, type, allergens, dishes]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          $ref: "#/components/schemas/MenuType"
+        allergens:
+          type: array
+          description: All the allergens of the menu's dishes, once each
+          items:
+            $ref: "#/components/schemas/Allergen"
+        dishes:
+          type: array
+          items:
+            $ref: "#/components/schemas/MealDish"
+
+    MealSlot:
+      type: object
+      required: [slotId, date, from, to, menus]
+      properties:
+        slotId:
+          type: integer
+        date:
+          $ref: "#/components/schemas/Date"
+        from:
+          type: string
+          example: "12:00"
+        to:
+          type: string
+          example: "14:00"
+        menus:
+          type: array
+          items:
+            $ref: "#/components/schemas/MealMenu"

@@ -1,23 +1,31 @@
-
 import Fastify, { type FastifyServerOptions } from "fastify";
 import secureSession from "@fastify/secure-session";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
+import fastifyJwt from "@fastify/jwt";
 import { fileURLToPath } from "node:url";
 import {
   serializerCompiler,
   validatorCompiler,
 } from "fastify-type-provider-zod";
 
-import { env } from "./config.ts";
-import { slotRoutes } from "./slots/slot-routes.ts";
-import { availabilityRoutes } from "./booking/availability-routes.ts";
-import { bookingRoutes } from "./booking/booking-routes.ts";
-import { staffBookingRoutes } from "./booking/staff-booking-routes.ts";
-import { changeBookingRoutes } from "./booking/change-booking-routes.ts";
-import { allergenRoutes } from "./allergens/allergen-routes.ts";
-import authRoutes from "./auth/auth.route.ts";
-import AuthRepository from "./auth/auth.repository.ts";
+import { UserRepository } from "#src/users/user-repository";
+import { allergenRoutes } from "#src/menus/allergens/allergen-routes";
+import { authRoutes } from "#src/auth/auth-routes";
+import { availabilityRoutes } from "#src/booking/routes/availability-routes";
+import { bookingRoutes } from "#src/booking/routes/booking-routes";
+import { cancelBookingRoutes } from "#src/booking/routes/cancel-booking-routes";
+import { changeBookingRoutes } from "#src/booking/routes/change-booking-routes";
+import { dishRoutes } from "#src/menus/dishes/dish-routes";
+import { mealRoutes } from "#src/menus/meals/meal-routes";
+import { env } from "#src/config";
+import { hikeRoutes } from "#src/hikes/hike-routes";
+import { menuRoutes } from "#src/menus/menu-routes";
+import { slotRoutes } from "#src/slots/slot-routes";
+import { staffBookingRoutes } from "#src/booking/routes/staff-booking-routes";
+import { userResponseSchema } from "#src/users/user-schema";
+import { userRoutes } from "#src/users/user-routes";
+
 
 export function buildApp(opts: FastifyServerOptions = {}) {
   const server = Fastify({
@@ -27,6 +35,7 @@ export function buildApp(opts: FastifyServerOptions = {}) {
 
   server.setValidatorCompiler(validatorCompiler);
   server.setSerializerCompiler(serializerCompiler);
+  server.register(fastifyJwt, { secret: env.SESSION_SECRET });
 
   server.register(secureSession, {
     secret: env.SESSION_SECRET,
@@ -42,12 +51,9 @@ export function buildApp(opts: FastifyServerOptions = {}) {
 
   server.addHook("preHandler", async (request) => {
     const userId = request.session.get("userId");
-
     if (userId) {
-      const user = await AuthRepository.getUserById(userId);
-      request.user = user ?? null;
-    } else {
-      request.user = null;
+      const rawUser = await UserRepository.getUserById(userId);
+      request.user = rawUser ? userResponseSchema.parse(rawUser) : null;
     }
   });
 
@@ -63,17 +69,25 @@ export function buildApp(opts: FastifyServerOptions = {}) {
 
   server.get("/", async () => ({ hello: "world" }));
 
-  server.register(slotRoutes);
-  server.register(availabilityRoutes);
-  server.register(bookingRoutes);
-  server.register(staffBookingRoutes);
-  server.register(changeBookingRoutes);
-  server.register(allergenRoutes);
-
   const BASE_URL = "/api/v1";
-  server.register(authRoutes, {
-    prefix: `${BASE_URL}/auth`,
-  });
+
+  server.register(slotRoutes, { prefix: BASE_URL });
+  server.register(availabilityRoutes, { prefix: BASE_URL });
+  server.register(bookingRoutes, { prefix: BASE_URL });
+  server.register(changeBookingRoutes, { prefix: BASE_URL });
+  server.register(staffBookingRoutes, { prefix: BASE_URL });
+  server.register(cancelBookingRoutes, { prefix: BASE_URL });
+
+  server.register(hikeRoutes, { prefix: BASE_URL });
+
+  server.register(authRoutes, { prefix: `${BASE_URL}/auth` });
+  server.register(userRoutes, { prefix: `${BASE_URL}/users` });
+
+  server.register(allergenRoutes, { prefix: BASE_URL });
+
+  server.register(dishRoutes, { prefix: `${BASE_URL}/dishes` });
+  server.register(menuRoutes, { prefix: `${BASE_URL}/menus` });
+  server.register(mealRoutes, { prefix: `${BASE_URL}/meals` });
 
   return server;
 }
@@ -86,7 +100,7 @@ const isMain =
 if (isMain) {
   const fastify = buildApp();
 
-  fastify.listen({ port: env.PORT }, function (err, _address) {
+  fastify.listen({ port: env.PORT, host: "0.0.0.0" }, function (err, _address) {
     if (err) {
       fastify.log.error(err);
       process.exit(1);

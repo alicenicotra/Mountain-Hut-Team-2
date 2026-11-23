@@ -1,0 +1,36 @@
+services:
+  server:
+    build:
+      context: ./mountain-hut-server
+      dockerfile: Dockerfile
+    image: ${DOCKERHUB_USERNAME:-lenarrdo}/mountain-hut-server:latest
+    container_name: mountain-hut-server
+    restart: unless-stopped
+    env_file:
+      - ./mountain-hut-server/.env
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - DB_FILE_NAME=file:/app/data/local.db
+      - APP_URL=${APP_URL:-http://localhost}
+    ports:
+      - "3000:3000"
+    volumes:
+      - server_data:/app/data
+
+  client:
+    build:
+      context: ./mountain-hut-client
+      dockerfile: Dockerfile
+      args:
+        VITE_MAIL_SERVICE_URL: "https://accounts.google.com/AccountChooser?Email=mountain.hut.team2%40gmail.com&continue=https%3A%2F%2Fmail.google.com%2Fmail%2F"
+    image: ${DOCKERHUB_USERNAME:-lenarrdo}/mountain-hut-client:latest
+    container_name: mountain-hut-client
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+
+volumes:
+  server_data:
